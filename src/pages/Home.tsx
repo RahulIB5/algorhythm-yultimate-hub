@@ -23,7 +23,7 @@ const Home = () => {
               AlgoRhythm brings together Ultimate Frisbee tournaments and youth development programs with AI-driven insights
             </p>
             <div className="flex flex-wrap gap-4 justify-center pt-4">
-              <Link to="/login">
+              <Link to="/select-role">
                 <Button size="lg" className="bg-gradient-to-r from-primary to-secondary hover:opacity-90 text-lg px-8">
                   Get Started
                 </Button>
@@ -120,7 +120,7 @@ const Home = () => {
                 Create Account
               </Button>
             </Link>
-            <Link to="/login">
+            <Link to="/select-role">
               <Button size="lg" variant="outline" className="text-lg px-8 bg-transparent border-primary-foreground text-primary-foreground hover:bg-primary-foreground hover:text-primary">
                 Sign In
               </Button>
