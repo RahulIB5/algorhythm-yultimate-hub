@@ -1,6 +1,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Users, Calendar, CheckCircle, TrendingUp, BookOpen, Home } from "lucide-react";
 import Navbar from "@/components/Navbar";
+import BottomNav from "@/components/BottomNav";
 
 const CoachDashboard = () => {
   const stats = [
@@ -14,7 +15,7 @@ const CoachDashboard = () => {
     <div className="min-h-screen bg-background">
       <Navbar />
       
-      <div className="pt-20 px-4 pb-12">
+      <div className="pt-20 px-4 pb-32">
         <div className="container mx-auto">
           {/* Header */}
           <div className="mb-8 space-y-2 animate-slide-up">
@@ -121,6 +122,7 @@ const CoachDashboard = () => {
           </div>
         </div>
       </div>
+      <BottomNav />
     </div>
   );
 };

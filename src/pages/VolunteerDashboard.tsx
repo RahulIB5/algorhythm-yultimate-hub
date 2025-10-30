@@ -1,6 +1,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Calendar, Heart, Users, Trophy, Camera, Star } from "lucide-react";
 import Navbar from "@/components/Navbar";
+import BottomNav from "@/components/BottomNav";
 
 const VolunteerDashboard = () => {
   const stats = [
@@ -14,7 +15,7 @@ const VolunteerDashboard = () => {
     <div className="min-h-screen bg-background">
       <Navbar />
       
-      <div className="pt-20 px-4 pb-12">
+      <div className="pt-20 px-4 pb-32">
         <div className="container mx-auto">
           {/* Header */}
           <div className="mb-8 space-y-2 animate-slide-up">
@@ -120,6 +121,7 @@ const VolunteerDashboard = () => {
           </div>
         </div>
       </div>
+      <BottomNav />
     </div>
   );
 };

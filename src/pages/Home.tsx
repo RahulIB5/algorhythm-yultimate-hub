@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Users, Trophy, TrendingUp, Heart, Target, Shield } from "lucide-react";
 import Navbar from "@/components/Navbar";
+import BottomNav from "@/components/BottomNav";
 
 const Home = () => {
   return (
@@ -132,7 +133,7 @@ const Home = () => {
       </section>
 
       {/* Footer */}
-      <footer className="py-12 px-4 border-t border-border">
+      <footer className="py-12 px-4 pb-32 border-t border-border">
         <div className="container mx-auto text-center space-y-4">
           <div className="flex items-center justify-center gap-2">
             <div className="bg-gradient-to-br from-primary to-secondary p-2 rounded-lg">
@@ -150,6 +151,7 @@ const Home = () => {
           </div>
         </div>
       </footer>
+      <BottomNav />
     </div>
   );
 };
