@@ -8,54 +8,46 @@ All colors MUST be HSL.
 
 @layer base {
   :root {
-    /* AlgoRhythm Dark Glassmorphism Theme */
-    --background: 240 10% 3.9%;
-    --foreground: 0 0% 98%;
+    /* Light Mode */
+    --background: 0 0% 100%;
+    --foreground: 240 10% 3.9%;
 
-    --card: 240 10% 8%;
-    --card-foreground: 0 0% 98%;
+    --card: 0 0% 100%;
+    --card-foreground: 240 10% 3.9%;
 
-    --popover: 240 10% 8%;
-    --popover-foreground: 0 0% 98%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 240 10% 3.9%;
 
-    /* Neon Blue Primary */
+    /* Primary Blue */
     --primary: 217 91% 60%;
     --primary-foreground: 0 0% 100%;
-    --primary-glow: 217 91% 70%;
 
-    /* Vibrant Orange Secondary */
-    --secondary: 26 100% 56%;
-    --secondary-foreground: 0 0% 100%;
-    --secondary-glow: 26 100% 66%;
+    --secondary: 240 5% 96%;
+    --secondary-foreground: 240 10% 3.9%;
 
-    --muted: 240 10% 15%;
-    --muted-foreground: 240 5% 65%;
+    --muted: 240 5% 96%;
+    --muted-foreground: 240 4% 46%;
 
-    --accent: 217 91% 60%;
-    --accent-foreground: 0 0% 100%;
+    --accent: 240 5% 96%;
+    --accent-foreground: 240 10% 3.9%;
 
     --destructive: 0 84% 60%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 240 10% 18%;
-    --input: 240 10% 15%;
+    --border: 240 6% 90%;
+    --input: 240 6% 90%;
     --ring: 217 91% 60%;
 
     --radius: 1rem;
     
-    /* Glassmorphism */
-    --glass-bg: 240 10% 8% / 0.4;
-    --glass-border: 240 10% 20% / 0.2;
+    /* Glassmorphism Light */
+    --glass-bg: 0 0% 100% / 0.7;
+    --glass-border: 240 6% 90% / 0.5;
     --glass-glow: 217 91% 60% / 0.1;
     
-    /* Gradients */
-    --gradient-hero: linear-gradient(135deg, hsl(217 91% 60%) 0%, hsl(26 100% 56%) 100%);
-    --gradient-glass: linear-gradient(135deg, hsl(240 10% 8% / 0.6) 0%, hsl(240 10% 12% / 0.4) 100%);
-    
     /* Shadows */
-    --shadow-glass: 0 8px 32px 0 hsl(0 0% 0% / 0.37);
-    --shadow-glow: 0 0 60px hsl(217 91% 60% / 0.3);
-    --shadow-glow-orange: 0 0 60px hsl(26 100% 56% / 0.3);
+    --shadow-glass: 0 8px 32px 0 hsl(0 0% 0% / 0.1);
+    --shadow-glow: 0 0 40px hsl(217 91% 60% / 0.2);
     
     /* Transitions */
     --transition-smooth: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
@@ -78,7 +70,7 @@ All colors MUST be HSL.
   }
 
   .dark {
-    /* Same as root for consistent dark theme */
+    /* Dark Mode */
     --background: 240 10% 3.9%;
     --foreground: 0 0% 98%;
 
@@ -90,17 +82,15 @@ All colors MUST be HSL.
 
     --primary: 217 91% 60%;
     --primary-foreground: 0 0% 100%;
-    --primary-glow: 217 91% 70%;
 
-    --secondary: 26 100% 56%;
-    --secondary-foreground: 0 0% 100%;
-    --secondary-glow: 26 100% 66%;
+    --secondary: 240 10% 15%;
+    --secondary-foreground: 0 0% 98%;
 
     --muted: 240 10% 15%;
     --muted-foreground: 240 5% 65%;
 
-    --accent: 217 91% 60%;
-    --accent-foreground: 0 0% 100%;
+    --accent: 240 10% 15%;
+    --accent-foreground: 0 0% 98%;
 
     --destructive: 0 84% 60%;
     --destructive-foreground: 0 0% 100%;
@@ -108,6 +98,15 @@ All colors MUST be HSL.
     --border: 240 10% 18%;
     --input: 240 10% 15%;
     --ring: 217 91% 60%;
+    
+    /* Glassmorphism Dark */
+    --glass-bg: 240 10% 8% / 0.4;
+    --glass-border: 240 10% 20% / 0.2;
+    --glass-glow: 217 91% 60% / 0.1;
+    
+    /* Shadows */
+    --shadow-glass: 0 8px 32px 0 hsl(0 0% 0% / 0.37);
+    --shadow-glow: 0 0 60px hsl(217 91% 60% / 0.3);
     --sidebar-background: 240 5.9% 10%;
     --sidebar-foreground: 240 4.8% 95.9%;
     --sidebar-primary: 224.3 76.3% 48%;
@@ -125,9 +124,12 @@ All colors MUST be HSL.
   }
 
   body {
-    @apply bg-background text-foreground;
-    background: radial-gradient(ellipse at top, hsl(240 10% 8%) 0%, hsl(240 10% 3.9%) 100%);
+    @apply bg-background text-foreground transition-colors duration-300;
     min-height: 100vh;
+  }
+  
+  body.dark {
+    background: radial-gradient(ellipse at top, hsl(240 10% 8%) 0%, hsl(240 10% 3.9%) 100%);
   }
 }
 
@@ -144,9 +146,5 @@ All colors MUST be HSL.
   
   .glow-blue {
     box-shadow: 0 0 40px hsl(217 91% 60% / 0.3);
-  }
-  
-  .glow-orange {
-    box-shadow: 0 0 40px hsl(26 100% 56% / 0.3);
   }
 }

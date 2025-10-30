@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Menu, X, Zap } from "lucide-react";
+import ThemeToggle from "./ThemeToggle";
 
 const Navbar = () => {
   const [isOpen, setIsOpen] = useState(false);
@@ -11,10 +12,10 @@ const Navbar = () => {
       <div className="container mx-auto px-4">
         <div className="flex items-center justify-between h-16">
           <Link to="/" className="flex items-center gap-2 group">
-            <div className="bg-gradient-to-br from-primary to-secondary p-2 rounded-lg group-hover:scale-110 transition-transform">
+            <div className="bg-primary p-2 rounded-lg group-hover:scale-110 transition-transform">
               <Zap className="h-6 w-6 text-primary-foreground" />
             </div>
-            <span className="text-xl font-bold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
+            <span className="text-xl font-bold text-primary">
               AlgoRhythm
             </span>
           </Link>
@@ -33,13 +34,14 @@ const Navbar = () => {
             <Link to="/contact" className="text-foreground hover:text-primary transition-colors">
               Contact
             </Link>
+            <ThemeToggle />
             <Link to="/login">
               <Button variant="outline" size="sm">
                 Login
               </Button>
             </Link>
             <Link to="/register">
-              <Button size="sm" className="bg-gradient-to-r from-primary to-secondary hover:opacity-90">
+              <Button size="sm">
                 Register
               </Button>
             </Link>
@@ -70,13 +72,14 @@ const Navbar = () => {
               Contact
             </Link>
             <div className="flex flex-col gap-2 pt-2">
+              <ThemeToggle />
               <Link to="/login">
                 <Button variant="outline" size="sm" className="w-full">
                   Login
                 </Button>
               </Link>
               <Link to="/register">
-                <Button size="sm" className="w-full bg-gradient-to-r from-primary to-secondary">
+                <Button size="sm" className="w-full">
                   Register
                 </Button>
               </Link>
