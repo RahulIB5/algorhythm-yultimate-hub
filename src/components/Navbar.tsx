@@ -8,86 +8,140 @@ const Navbar = () => {
   const [isOpen, setIsOpen] = useState(false);
 
   return (
-    <nav className="fixed top-0 w-full z-50 bg-card/20 backdrop-blur-2xl border-b border-white/10">
-      <div className="container mx-auto px-4">
-        <div className="flex items-center justify-between h-16">
-          <Link to="/" className="flex items-center gap-2 group">
-            <div className="bg-primary p-2 rounded-lg group-hover:scale-110 transition-transform">
-              <Zap className="h-6 w-6 text-primary-foreground" />
+    <>
+      {/* Desktop Floating Navbar */}
+      <nav className="fixed top-6 left-1/2 -translate-x-1/2 z-50 hidden md:block">
+        <div className="bg-card/95 backdrop-blur-xl border border-border rounded-full px-8 py-4 shadow-2xl shadow-black/20">
+          <div className="flex items-center gap-8">
+            <Link to="/" className="flex items-center gap-2 group">
+              <div className="bg-primary p-2 rounded-lg group-hover:scale-110 transition-transform">
+                <Zap className="h-5 w-5 text-primary-foreground" />
+              </div>
+              <span className="text-lg font-bold text-primary">
+                AlgoRhythm
+              </span>
+            </Link>
+
+            <div className="flex items-center gap-6">
+              <Link 
+                to="/" 
+                className="text-sm font-medium text-foreground/80 hover:text-primary transition-colors px-4 py-2 rounded-full hover:bg-accent"
+              >
+                Home
+              </Link>
+              <Link 
+                to="/about" 
+                className="text-sm font-medium text-foreground/80 hover:text-primary transition-colors px-4 py-2 rounded-full hover:bg-accent"
+              >
+                About
+              </Link>
+              <Link 
+                to="/tournaments" 
+                className="text-sm font-medium text-foreground/80 hover:text-primary transition-colors px-4 py-2 rounded-full hover:bg-accent"
+              >
+                Tournaments
+              </Link>
+              <Link 
+                to="/contact" 
+                className="text-sm font-medium text-foreground/80 hover:text-primary transition-colors px-4 py-2 rounded-full hover:bg-accent"
+              >
+                Contact
+              </Link>
             </div>
-            <span className="text-xl font-bold text-primary">
-              AlgoRhythm
-            </span>
-          </Link>
 
-          {/* Desktop Navigation */}
-          <div className="hidden md:flex items-center gap-6">
-            <Link to="/" className="text-foreground hover:text-primary transition-colors">
-              Home
-            </Link>
-            <Link to="/about" className="text-foreground hover:text-primary transition-colors">
-              About
-            </Link>
-            <Link to="/tournaments" className="text-foreground hover:text-primary transition-colors">
-              Tournaments
-            </Link>
-            <Link to="/contact" className="text-foreground hover:text-primary transition-colors">
-              Contact
-            </Link>
-            <ThemeToggle />
-            <Link to="/login">
-              <Button variant="outline" size="sm">
-                Login
-              </Button>
-            </Link>
-            <Link to="/register">
-              <Button size="sm">
-                Register
-              </Button>
-            </Link>
-          </div>
-
-          {/* Mobile Menu Button */}
-          <button
-            className="md:hidden"
-            onClick={() => setIsOpen(!isOpen)}
-          >
-            {isOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
-          </button>
-        </div>
-
-        {/* Mobile Navigation */}
-        {isOpen && (
-          <div className="md:hidden py-4 space-y-3 animate-slide-up">
-            <Link to="/" className="block py-2 text-foreground hover:text-primary transition-colors">
-              Home
-            </Link>
-            <Link to="/about" className="block py-2 text-foreground hover:text-primary transition-colors">
-              About
-            </Link>
-            <Link to="/tournaments" className="block py-2 text-foreground hover:text-primary transition-colors">
-              Tournaments
-            </Link>
-            <Link to="/contact" className="block py-2 text-foreground hover:text-primary transition-colors">
-              Contact
-            </Link>
-            <div className="flex flex-col gap-2 pt-2">
+            <div className="flex items-center gap-3 ml-2">
               <ThemeToggle />
               <Link to="/login">
-                <Button variant="outline" size="sm" className="w-full">
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  className="rounded-full"
+                >
                   Login
                 </Button>
               </Link>
               <Link to="/register">
-                <Button size="sm" className="w-full">
+                <Button 
+                  size="sm" 
+                  className="rounded-full px-6"
+                >
                   Register
                 </Button>
               </Link>
             </div>
           </div>
-        )}
-      </div>
-    </nav>
+        </div>
+      </nav>
+
+      {/* Mobile Navbar */}
+      <nav className="fixed top-0 w-full z-50 md:hidden bg-card/95 backdrop-blur-xl border-b border-border">
+        <div className="container mx-auto px-4">
+          <div className="flex items-center justify-between h-16">
+            <Link to="/" className="flex items-center gap-2 group">
+              <div className="bg-primary p-2 rounded-lg group-hover:scale-110 transition-transform">
+                <Zap className="h-6 w-6 text-primary-foreground" />
+              </div>
+              <span className="text-xl font-bold text-primary">
+                AlgoRhythm
+              </span>
+            </Link>
+
+            <button
+              className="text-foreground"
+              onClick={() => setIsOpen(!isOpen)}
+            >
+              {isOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
+            </button>
+          </div>
+
+          {isOpen && (
+            <div className="py-4 space-y-3 animate-slide-up">
+              <Link 
+                to="/" 
+                className="block py-2 text-foreground hover:text-primary transition-colors"
+                onClick={() => setIsOpen(false)}
+              >
+                Home
+              </Link>
+              <Link 
+                to="/about" 
+                className="block py-2 text-foreground hover:text-primary transition-colors"
+                onClick={() => setIsOpen(false)}
+              >
+                About
+              </Link>
+              <Link 
+                to="/tournaments" 
+                className="block py-2 text-foreground hover:text-primary transition-colors"
+                onClick={() => setIsOpen(false)}
+              >
+                Tournaments
+              </Link>
+              <Link 
+                to="/contact" 
+                className="block py-2 text-foreground hover:text-primary transition-colors"
+                onClick={() => setIsOpen(false)}
+              >
+                Contact
+              </Link>
+              <div className="flex flex-col gap-2 pt-2">
+                <ThemeToggle />
+                <Link to="/login" onClick={() => setIsOpen(false)}>
+                  <Button variant="outline" size="sm" className="w-full">
+                    Login
+                  </Button>
+                </Link>
+                <Link to="/register" onClick={() => setIsOpen(false)}>
+                  <Button size="sm" className="w-full">
+                    Register
+                  </Button>
+                </Link>
+              </div>
+            </div>
+          )}
+        </div>
+      </nav>
+    </>
   );
 };
 

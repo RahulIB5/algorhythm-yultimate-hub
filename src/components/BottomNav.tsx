@@ -16,7 +16,7 @@ const BottomNav = () => {
   ];
 
   return (
-    <nav className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 glass-card px-3 py-2 max-w-[95vw] overflow-x-auto">
+    <nav className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 bg-card/95 backdrop-blur-xl border border-border rounded-full shadow-2xl shadow-black/20 px-4 py-3">
       <div className="flex items-center gap-2">
         {tabs.map((tab) => {
           const Icon = tab.icon;
@@ -26,14 +26,14 @@ const BottomNav = () => {
             <Link
               key={tab.path}
               to={tab.path}
-              className={`flex items-center gap-2 px-4 py-2 rounded-full transition-all whitespace-nowrap ${
+              className={`p-3 rounded-full transition-all ${
                 isActive
                   ? "bg-primary text-primary-foreground"
-                  : "text-foreground hover:bg-accent"
+                  : "text-foreground/70 hover:text-foreground hover:bg-accent"
               }`}
+              title={tab.name}
             >
-              <Icon className="h-4 w-4" />
-              <span className="text-sm font-medium">{tab.name}</span>
+              <Icon className="h-5 w-5" />
             </Link>
           );
         })}
