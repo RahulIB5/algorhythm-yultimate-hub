@@ -1,14 +1,19 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Users, Trophy, Target, TrendingUp, Calendar, CheckCircle, Plus, X, Check, Clock, AlertCircle, FileText, BarChart3, Settings, UserCheck, Clipboard } from "lucide-react";
+import {
+  Users, Trophy, Target, TrendingUp, Calendar, CheckCircle, Plus, X, Check,
+  AlertCircle, FileText, BarChart3, UserCheck, Clipboard, Settings
+} from "lucide-react";
 import Navbar from "@/components/Navbar";
 import BottomNav from "@/components/BottomNav";
 import AdminNavbar from "@/components/AdminNavbar";
+import { toast } from "sonner";
 
 const AdminDashboard = () => {
   const [activeTab, setActiveTab] = useState("overview");
   const [showCreateTournament, setShowCreateTournament] = useState(false);
   const [showCreateSession, setShowCreateSession] = useState(false);
+  const [accountRequests, setAccountRequests] = useState([]);
 
   const stats = [
     { icon: Users, label: "Total Players", value: "1,247", change: "+12%" },
@@ -16,14 +21,7 @@ const AdminDashboard = () => {
     { icon: Target, label: "Teams Registered", value: "156", change: "+18%" },
     { icon: TrendingUp, label: "Avg Spirit Score", value: "14.2", change: "+0.8" },
     { icon: Calendar, label: "Sessions This Month", value: "42", change: "+5" },
-    { icon: CheckCircle, label: "Attendance Rate", value: "87%", change: "+3%" }
-  ];
-
-  const accountRequests = [
-    { id: 1, name: "Rahul Sharma", type: "Player", email: "rahul@email.com", date: "2025-10-29", status: "pending" },
-    { id: 2, name: "Priya Patel", type: "Player", email: "priya@email.com", date: "2025-10-28", status: "pending" },
-    { id: 3, name: "Amit Kumar", type: "Volunteer", email: "amit@email.com", date: "2025-10-27", status: "pending" },
-    { id: 4, name: "Sneha Reddy", type: "Player", email: "sneha@email.com", date: "2025-10-26", status: "pending" }
+    { icon: CheckCircle, label: "Attendance Rate", value: "87%", change: "+3%" },
   ];
 
   const volunteerRequests = [
@@ -50,12 +48,62 @@ const AdminDashboard = () => {
     { id: 3, title: "Defensive Strategies", coach: "Coach Arjun", date: "2025-11-07", time: "4:00 PM", spots: "15/15" }
   ];
 
-  const handleApprove = (id, type) => {
-    console.log(`Approved ${type} request ID: ${id}`);
+  useEffect(() => {
+    fetchPendingRequests();
+  }, []);
+
+  const fetchPendingRequests = async () => {
+    try {
+      const response = await fetch("http://localhost:5000/api/auth/requests");
+      const data = await response.json();
+      if (response.ok) {
+        setAccountRequests(data);
+      } else {
+        toast.error(data.message || "Failed to load requests");
+      }
+    } catch {
+      toast.error("Server error while loading requests");
+    }
   };
 
-  const handleReject = (id, type) => {
-    console.log(`Rejected ${type} request ID: ${id}`);
+  const handleApprove = async (id: string | number, type: 'account' | 'volunteer' = 'account') => {
+      try {
+        const endpoint = type === 'account' ? 'player' : 'volunteer';
+        const response = await fetch(`http://localhost:5000/api/auth/approve/${endpoint}`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ requestId: id }),
+        });
+        const data = await response.json();
+        if (response.ok) {
+          toast.success(`${type === 'account' ? 'Player' : 'Volunteer'} approved successfully!`);
+          fetchPendingRequests();
+        } else {
+          toast.error(data.message || "Approval failed");
+        }
+      } catch {
+        toast.error("Server error during approval");
+      }
+    };
+
+  const handleReject = async (id: string | number, type: 'account' | 'volunteer' = 'account') => {
+    try {
+      const endpoint = type === 'account' ? 'player' : 'volunteer';
+      const response = await fetch(`http://localhost:5000/api/auth/reject/${endpoint}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ requestId: id }),
+      });
+      const data = await response.json();
+      if (response.ok) {
+        toast.success(`${type === 'account' ? 'Request' : 'Volunteer'} rejected!`);
+        fetchPendingRequests();
+      } else {
+        toast.error(data.message || "Rejection failed");
+      }
+    } catch {
+      toast.error("Server error during rejection");
+    }
   };
 
   const TabButton = ({ id, label, icon: Icon }) => (
@@ -431,34 +479,43 @@ const AdminDashboard = () => {
           )}
 
           {/* Account Requests Tab */}
-          {activeTab === "accounts" && (
+      {activeTab === "accounts" && (
             <div className="space-y-6">
               <h2 className="text-2xl font-bold">Account Approval Requests</h2>
               <Card className="glass-card">
                 <CardContent className="p-6">
                   <div className="space-y-4">
                     {accountRequests.map((request) => (
-                      <div key={request.id} className="flex flex-col md:flex-row md:items-center justify-between gap-4 p-4 rounded-lg bg-muted/50 hover:bg-muted transition-colors">
+                      <div
+                        key={request._id}
+                        className="flex flex-col md:flex-row md:items-center justify-between gap-4 p-4 rounded-lg bg-muted/50 hover:bg-muted transition-colors"
+                      >
                         <div className="flex-1">
                           <div className="flex items-center gap-2 mb-1">
-                            <h3 className="font-bold">{request.name}</h3>
+                            <h3 className="font-bold">
+                              {request.applicantInfo?.firstName} {request.applicantInfo?.lastName}
+                            </h3>
                             <span className="text-xs px-2 py-1 rounded bg-blue-500/10 text-blue-600">
-                              {request.type}
+                              {request.requestedRole || "player"}
                             </span>
                           </div>
-                          <p className="text-sm text-muted-foreground">{request.email}</p>
-                          <p className="text-xs text-muted-foreground mt-1">Applied: {request.date}</p>
+                          <p className="text-sm text-muted-foreground">
+                            {request.applicantInfo?.email}
+                          </p>
+                          <p className="text-xs text-muted-foreground mt-1">
+                            Applied: {new Date(request.createdAt).toLocaleDateString()}
+                          </p>
                         </div>
                         <div className="flex gap-2">
-                          <button 
-                            onClick={() => handleApprove(request.id, 'account')}
+                          <button
+                            onClick={() => handleApprove(request._id)}
                             className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
                           >
                             <Check className="h-4 w-4" />
                             Approve
                           </button>
-                          <button 
-                            onClick={() => handleReject(request.id, 'account')}
+                          <button
+                            onClick={() => handleReject(request._id)}
                             className="flex items-center gap-2 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
                           >
                             <X className="h-4 w-4" />

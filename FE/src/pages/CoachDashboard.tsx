@@ -3,6 +3,7 @@ import { Users, Calendar, CheckCircle, TrendingUp, BookOpen, Home } from "lucide
 import Navbar from "@/components/Navbar";
 import BottomNav from "@/components/BottomNav";
 import CoachNavbar from "@/components/CoachNavbar";
+import CoachNotifications from "@/components/CoachNotifications"; // ✅ Import added
 
 const CoachDashboard = () => {
   const stats = [
@@ -13,9 +14,18 @@ const CoachDashboard = () => {
   ];
 
   return (
-    <div className="min-h-screen bg-background">
-      <CoachNavbar/>
-      
+    <div className="min-h-screen bg-background relative">
+      {/* Top Navbar */}
+      <div className="relative">
+        <CoachNavbar />
+
+        {/* ✅ Floating Notification Component */}
+        <div className="fixed top-10 right-60 z-50 animate-fade-in">
+          <CoachNotifications />
+        </div>
+      </div>
+
+      {/* Main Content */}
       <div className="pt-20 px-4 pb-32">
         <div className="container mx-auto">
           {/* Header */}
@@ -61,6 +71,7 @@ const CoachDashboard = () => {
 
           {/* Management Sections */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {/* Upcoming Sessions */}
             <Card className="glass-card glass-hover animate-slide-up" style={{ animationDelay: '0.2s' }}>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
@@ -90,6 +101,7 @@ const CoachDashboard = () => {
               </CardContent>
             </Card>
 
+            {/* Quick Actions */}
             <Card className="glass-card glass-hover animate-slide-up" style={{ animationDelay: '0.3s' }}>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
@@ -123,6 +135,7 @@ const CoachDashboard = () => {
           </div>
         </div>
       </div>
+
       <BottomNav />
     </div>
   );

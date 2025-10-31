@@ -1,11 +1,130 @@
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { Users, Trophy, TrendingUp, Heart, Target, Shield } from "lucide-react";
+import { Users, Trophy, TrendingUp, Heart, Target, Shield, Calendar, MapPin, Clock } from "lucide-react";
 import Navbar from "@/components/Navbar";
 import BottomNav from "@/components/BottomNav";
+import { useState, useEffect } from "react";
+
+// Type declarations for window.storage
+declare global {
+  interface Window {
+    storage: {
+      get: (key: string, shared?: boolean) => Promise<{key: string, value: string, shared: boolean} | null>;
+      set: (key: string, value: string, shared?: boolean) => Promise<{key: string, value: string, shared: boolean} | null>;
+      delete: (key: string, shared?: boolean) => Promise<{key: string, deleted: boolean, shared: boolean} | null>;
+      list: (prefix?: string, shared?: boolean) => Promise<{keys: string[], prefix?: string, shared: boolean} | null>;
+    };
+  }
+}
+
+interface Post {
+  id: string;
+  title: string;
+  content: string;
+  timestamp: string;
+  author?: string;
+  category?: string;
+  imageUrl?: string;
+  location?: string;
+  date?: string;
+}
+
+// Dummy posts for when storage is empty
+const dummyPosts: Post[] = [
+  {
+    id: 'dummy-1',
+    title: 'Championship Tournament 2025',
+    content: 'Join us for the biggest Ultimate Frisbee tournament of the year! Teams from across the region will compete for the championship title.',
+    timestamp: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(), // 2 hours ago
+    author: 'Tournament Director',
+    category: 'Tournament',
+    imageUrl: 'https://images.unsplash.com/photo-1461896836934-ffe607ba8211?w=800&h=600&fit=crop',
+    location: 'National Sports Complex',
+    date: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString() // 2 weeks from now
+  },
+  {
+    id: 'dummy-2',
+    title: 'Youth Coaching Program Launch',
+    content: 'Exciting news! We are launching a new youth development program focused on building skills, teamwork, and character through Ultimate Frisbee.',
+    timestamp: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString(), // 1 day ago
+    author: 'Coach Sarah',
+    category: 'Program',
+    imageUrl: 'https://images.unsplash.com/photo-1530549387789-4c1017266635?w=800&h=600&fit=crop',
+    location: 'Community Center',
+    date: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString() // 1 week from now
+  },
+  {
+    id: 'dummy-3',
+    title: 'Spirit of the Game Workshop',
+    content: 'Learn about the core values of Ultimate Frisbee and how to foster fair play and respect on and off the field. Open to all players and coaches.',
+    timestamp: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString(), // 3 days ago
+    author: 'Admin',
+    category: 'Workshop',
+    imageUrl: 'https://images.unsplash.com/photo-1552674605-db6ffd4facb5?w=800&h=600&fit=crop',
+    location: 'Online',
+    date: new Date(Date.now() + 21 * 24 * 60 * 60 * 1000).toISOString() // 3 weeks from now
+  }
+];
 
 const Home = () => {
+  const [posts, setPosts] = useState<Post[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    // Load posts from storage
+    const loadPosts = async () => {
+      try {
+        const result = await window.storage.list('post:', true);
+        if (result && result.keys && result.keys.length > 0) {
+          const loadedPosts = await Promise.all(
+            result.keys.map(async (key) => {
+              try {
+                const postData = await window.storage.get(key, true);
+                return postData ? JSON.parse(postData.value) : null;
+              } catch {
+                return null;
+              }
+            })
+          );
+          
+          const validPosts = loadedPosts
+            .filter((post): post is Post => post !== null)
+            .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
+            .slice(0, 3); // Show only latest 3 posts
+          
+          setPosts(validPosts);
+        } else {
+          // No posts in storage, use dummy posts
+          setPosts(dummyPosts);
+        }
+      } catch (error) {
+        console.log('No posts yet or error loading, using dummy posts:', error);
+        // Use dummy posts on error
+        setPosts(dummyPosts);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadPosts();
+  }, []);
+
+  const formatDate = (timestamp: string) => {
+    const date = new Date(timestamp);
+    const now = new Date();
+    const diffMs = now.getTime() - date.getTime();
+    const diffMins = Math.floor(diffMs / 60000);
+    const diffHours = Math.floor(diffMs / 3600000);
+    const diffDays = Math.floor(diffMs / 86400000);
+
+    if (diffMins < 1) return 'Just now';
+    if (diffMins < 60) return `${diffMins}m ago`;
+    if (diffHours < 24) return `${diffHours}h ago`;
+    if (diffDays < 7) return `${diffDays}d ago`;
+    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+  };
+
   return (
     <div className="min-h-screen bg-background">
       <Navbar />
@@ -39,6 +158,96 @@ const Home = () => {
           </div>
         </div>
       </section>
+
+      {/* Live News/Posts Section */}
+      {!loading && posts.length > 0 && (
+        <section className="py-20 px-4 relative">
+          <div className="absolute inset-0 bg-gradient-to-b from-transparent via-secondary/5 to-transparent pointer-events-none"></div>
+          <div className="container mx-auto">
+            <div className="text-center mb-12">
+              <div className="inline-flex items-center gap-2 px-4 py-2 bg-primary/10 rounded-full mb-4">
+                <div className="w-2 h-2 bg-primary rounded-full animate-pulse"></div>
+                <span className="text-sm font-medium text-primary">Live Updates</span>
+              </div>
+              <h2 className="text-4xl font-bold">Latest News & Announcements</h2>
+            </div>
+            
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-6xl mx-auto">
+              {posts.map((post, index) => (
+                <Card 
+                  key={post.id} 
+                  className="glass-card glass-hover border-white/10 hover:-translate-y-1 animate-slide-up overflow-hidden"
+                  style={{ animationDelay: `${index * 0.1}s` }}
+                >
+                  <CardContent className="p-0">
+                    {post.imageUrl && (
+                      <div className="w-full h-48 overflow-hidden">
+                        <img 
+                          src={post.imageUrl} 
+                          alt={post.title}
+                          className="w-full h-full object-cover transition-transform hover:scale-105"
+                        />
+                      </div>
+                    )}
+                    <div className="p-6 space-y-3">
+                      <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                        <Clock className="h-3 w-3" />
+                        <span>{formatDate(post.timestamp)}</span>
+                        {post.category && (
+                          <>
+                            <span>•</span>
+                            <span className="px-2 py-0.5 bg-primary/10 rounded-full text-primary">
+                              {post.category}
+                            </span>
+                          </>
+                        )}
+                      </div>
+                      
+                      <h3 className="text-xl font-bold line-clamp-2">{post.title}</h3>
+                      
+                      <p className="text-muted-foreground text-sm line-clamp-3">
+                        {post.content}
+                      </p>
+                      
+                      {(post.location || post.date) && (
+                        <div className="flex flex-wrap gap-3 text-xs text-muted-foreground pt-2">
+                          {post.date && (
+                            <div className="flex items-center gap-1">
+                              <Calendar className="h-3 w-3" />
+                              <span>{new Date(post.date).toLocaleDateString()}</span>
+                            </div>
+                          )}
+                          {post.location && (
+                            <div className="flex items-center gap-1">
+                              <MapPin className="h-3 w-3" />
+                              <span>{post.location}</span>
+                            </div>
+                          )}
+                        </div>
+                      )}
+                      
+                      <div className="flex items-center justify-between pt-2">
+                        <span className="text-xs text-muted-foreground">
+                          By {post.author || 'Admin'}
+                        </span>
+                        <Button variant="ghost" size="sm" className="text-primary">
+                          Read More →
+                        </Button>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+            
+            <div className="text-center mt-8">
+              <Button variant="outline" size="lg">
+                View All Posts
+              </Button>
+            </div>
+          </div>
+        </section>
+      )}
 
       {/* Features Section */}
       <section className="py-20 px-4 relative">

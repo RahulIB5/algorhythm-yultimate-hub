@@ -13,33 +13,61 @@ const Register = () => {
   const [formData, setFormData] = useState({
     name: "",
     email: "",
+    phone: "",
+    role: "",
     password: "",
     confirmPassword: "",
-    role: ""
   });
   const [isLoading, setIsLoading] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
-    if (formData.password !== formData.confirmPassword) {
-      toast.error("Passwords do not match");
-      return;
-    }
 
-    if (!formData.role) {
-      toast.error("Please select a role");
-      return;
-    }
+    // Basic front-end validations
+    if (!formData.name.trim()) return toast.error("Full name is required");
+    if (!formData.email.trim()) return toast.error("Email is required");
+    if (!formData.phone.trim()) return toast.error("Phone number is required");
+    if (!formData.role) return toast.error("Please select a role");
+    if (!formData.password.trim()) return toast.error("Password is required");
+    if (formData.password.length < 6)
+      return toast.error("Password must be at least 6 characters");
+    if (formData.password !== formData.confirmPassword)
+      return toast.error("Passwords do not match");
 
     setIsLoading(true);
 
-    // Mock registration - replace with actual auth logic
-    setTimeout(() => {
-      toast.success("Registration successful! Please sign in.");
-      navigate("/login");
+    try {
+      const [firstName, ...rest] = formData.name.trim().split(" ");
+      const lastName = rest.join(" ") || "";
+
+      const response = await fetch("http://localhost:5000/api/auth/signup/player", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          firstName,
+          lastName,
+          email: formData.email.trim(),
+          phone: formData.phone.trim(),
+          role: formData.role,
+          password: formData.password.trim(),
+          confirmPassword: formData.confirmPassword.trim(),
+        }),
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        toast.success("Signup request submitted! Wait for admin approval.");
+        setTimeout(() => navigate("/login"), 1500);
+      } else {
+        toast.error(data.message || "Signup failed");
+      }
+    } catch (error) {
+      console.error("Signup error:", error);
+      toast.error("Server error. Please try again later.");
+    } finally {
       setIsLoading(false);
-    }, 1000);
+    }
   };
 
   return (
@@ -57,6 +85,7 @@ const Register = () => {
             Create your account to get started
           </CardDescription>
         </CardHeader>
+
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">
@@ -69,6 +98,7 @@ const Register = () => {
                 required
               />
             </div>
+
             <div className="space-y-2">
               <Label htmlFor="email">Email</Label>
               <Input
@@ -80,9 +110,25 @@ const Register = () => {
                 required
               />
             </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="phone">Phone Number</Label>
+              <Input
+                id="phone"
+                type="tel"
+                placeholder="9876543210"
+                value={formData.phone}
+                onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                required
+              />
+            </div>
+
             <div className="space-y-2">
               <Label htmlFor="role">I am a...</Label>
-              <Select value={formData.role} onValueChange={(value) => setFormData({ ...formData, role: value })}>
+              <Select
+                value={formData.role}
+                onValueChange={(value) => setFormData({ ...formData, role: value })}
+              >
                 <SelectTrigger>
                   <SelectValue placeholder="Select your role" />
                 </SelectTrigger>
@@ -94,42 +140,48 @@ const Register = () => {
                 </SelectContent>
               </Select>
             </div>
+
+            {/* Password fields */}
             <div className="space-y-2">
               <Label htmlFor="password">Password</Label>
               <Input
                 id="password"
                 type="password"
-                placeholder="••••••••"
+                placeholder="Create password"
                 value={formData.password}
                 onChange={(e) => setFormData({ ...formData, password: e.target.value })}
                 required
               />
             </div>
+
             <div className="space-y-2">
               <Label htmlFor="confirmPassword">Confirm Password</Label>
               <Input
                 id="confirmPassword"
                 type="password"
-                placeholder="••••••••"
+                placeholder="Re-enter password"
                 value={formData.confirmPassword}
                 onChange={(e) => setFormData({ ...formData, confirmPassword: e.target.value })}
                 required
               />
             </div>
+
             <Button
               type="submit"
               className="w-full bg-gradient-to-r from-primary to-secondary hover:opacity-90"
               disabled={isLoading}
             >
-              {isLoading ? "Creating account..." : "Create Account"}
+              {isLoading ? "Submitting..." : "Register"}
             </Button>
           </form>
+
           <div className="mt-6 text-center text-sm text-muted-foreground">
             Already have an account?{" "}
             <Link to="/login" className="text-primary hover:underline font-medium">
               Sign in here
             </Link>
           </div>
+
           <div className="mt-4 text-center">
             <Link to="/" className="text-sm text-muted-foreground hover:text-primary">
               ← Back to Home

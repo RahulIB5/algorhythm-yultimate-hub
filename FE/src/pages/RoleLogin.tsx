@@ -10,7 +10,7 @@ import { toast } from "sonner";
 const RoleLogin = () => {
   const navigate = useNavigate();
   const { role } = useParams<{ role: string }>();
-  const [email, setEmail] = useState("");
+  const [uniqueCode, setUniqueCode] = useState(""); // uniqueUserId for all
   const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
 
@@ -20,29 +20,29 @@ const RoleLogin = () => {
       description: "Access tournament management and analytics",
       icon: Trophy,
       color: "from-blue-500 to-blue-600",
-      dashboard: "/dashboard/admin"
+      dashboard: "/dashboard/admin",
     },
     coach: {
       title: "Coach Login",
       description: "Manage sessions and track player progress",
       icon: Target,
       color: "from-orange-500 to-orange-600",
-      dashboard: "/dashboard/coach"
+      dashboard: "/dashboard/coach",
     },
     volunteer: {
       title: "Volunteer Login",
       description: "View and support program activities",
       icon: Heart,
       color: "from-green-500 to-green-600",
-      dashboard: "/dashboard/volunteer"
+      dashboard: "/dashboard/volunteer",
     },
     player: {
       title: "Player Login",
       description: "Access your games and achievements",
       icon: Users,
       color: "from-purple-500 to-purple-600",
-      dashboard: "/dashboard/player"
-    }
+      dashboard: "/dashboard/player",
+    },
   };
 
   const config = role ? roleConfig[role as keyof typeof roleConfig] : roleConfig.admin;
@@ -52,18 +52,34 @@ const RoleLogin = () => {
     e.preventDefault();
     setIsLoading(true);
 
-    // Mock authentication - replace with actual auth logic
-    setTimeout(() => {
-      if (email && password) {
-        // Store role in localStorage for demo purposes
-        localStorage.setItem('userRole', role || 'admin');
-        toast.success(`Welcome ${role}!`);
+    try {
+      const payload =
+        role === "admin"
+          ? { uniqueUserId: uniqueCode.trim(), role: "admin" }
+          : { uniqueUserId: uniqueCode.trim(), password: password.trim(), role };
+
+      const response = await fetch("http://localhost:5000/api/auth/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        localStorage.setItem("token", data.token);
+        localStorage.setItem("userRole", role || "admin");
+        toast.success(`Welcome ${role || "admin"}!`);
         navigate(config.dashboard);
       } else {
-        toast.error("Please fill in all fields");
+        toast.error(data.message || "Login failed");
       }
+    } catch (error) {
+      console.error("Login error:", error);
+      toast.error("Server error. Try again later.");
+    } finally {
       setIsLoading(false);
-    }, 1000);
+    }
   };
 
   return (
@@ -71,8 +87,8 @@ const RoleLogin = () => {
       <div className="absolute inset-0 bg-gradient-to-br from-primary/10 via-transparent to-secondary/10 pointer-events-none"></div>
       <Card className="w-full max-w-md glass-card animate-slide-up glow-blue relative z-10">
         <CardHeader className="text-center space-y-4">
-          <Link 
-            to="/select-role" 
+          <Link
+            to="/select-role"
             className="flex items-center gap-2 text-sm text-muted-foreground hover:text-primary transition-colors w-fit"
           >
             <ArrowLeft className="h-4 w-4" />
@@ -84,34 +100,46 @@ const RoleLogin = () => {
             </div>
           </div>
           <CardTitle className="text-3xl font-bold">{config.title}</CardTitle>
-          <CardDescription className="text-base">
-            {config.description}
-          </CardDescription>
+          <CardDescription className="text-base">{config.description}</CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
+            {/* Unique Code input for all users */}
             <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
+              <Label htmlFor="uniqueCode">
+                {role === "admin"
+                  ? "Admin Unique Code"
+                  : "Your Unique ID (e.g. PLR-2025-0012)"}
+              </Label>
               <Input
-                id="email"
-                type="email"
-                placeholder="your.email@example.com"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
+                id="uniqueCode"
+                type="text"
+                placeholder={
+                  role === "admin"
+                    ? "Enter admin code (e.g. admin123)"
+                    : "Enter your unique code (e.g. PLR-2025-0012)"
+                }
+                value={uniqueCode}
+                onChange={(e) => setUniqueCode(e.target.value)}
                 required
               />
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="password">Password</Label>
-              <Input
-                id="password"
-                type="password"
-                placeholder="••••••••"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-              />
-            </div>
+
+            {/* Password field for non-admins */}
+            {role !== "admin" && (
+              <div className="space-y-2">
+                <Label htmlFor="password">Password</Label>
+                <Input
+                  id="password"
+                  type="password"
+                  placeholder="••••••••"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  required
+                />
+              </div>
+            )}
+
             <Button
               type="submit"
               className={`w-full bg-gradient-to-r ${config.color} hover:opacity-90 text-white`}
@@ -121,7 +149,7 @@ const RoleLogin = () => {
             </Button>
           </form>
           <div className="mt-6 text-center text-sm text-muted-foreground">
-            Don't have an account?{" "}
+            Don’t have an account?{" "}
             <Link to="/register" className="text-primary hover:underline font-medium">
               Register here
             </Link>

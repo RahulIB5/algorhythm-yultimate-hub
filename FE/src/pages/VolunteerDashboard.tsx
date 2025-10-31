@@ -3,6 +3,7 @@ import { Calendar, Heart, Users, Trophy, Camera, Star } from "lucide-react";
 import Navbar from "@/components/Navbar";
 import BottomNav from "@/components/BottomNav";
 import VolunteerNavbar from "@/components/VolunteerNavbar";
+import VolunteerNotifications from "@/components/VolunteerNotifications";
 
 const VolunteerDashboard = () => {
   const stats = [
@@ -15,7 +16,9 @@ const VolunteerDashboard = () => {
   return (
     <div className="min-h-screen bg-background">
       <VolunteerNavbar />
-      
+      <div className="fixed top-10 right-60 z-50 animate-fade-in">
+                <VolunteerNotifications />
+              </div>
       <div className="pt-20 px-4 pb-32">
         <div className="container mx-auto">
           {/* Header */}
