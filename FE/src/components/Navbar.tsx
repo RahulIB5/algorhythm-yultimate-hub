@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { Menu, X, Zap } from "lucide-react";
+import { Menu, X, Zap,ChevronRight } from "lucide-react";
 import ThemeToggle from "./ThemeToggle";
 
 const Navbar = () => {
@@ -51,21 +51,14 @@ const Navbar = () => {
 
             <div className="flex items-center gap-3 ml-2">
               <ThemeToggle />
-              <Link to="/login">
-                <Button 
-                  variant="outline" 
-                  size="sm" 
-                  className="rounded-full"
-                >
-                  Login
-                </Button>
-              </Link>
-              <Link to="/register">
+              
+              
+              <Link to="/select-role">
                 <Button 
                   size="sm" 
-                  className="rounded-full px-6"
+                  className="rounded-full px-4 group"
                 >
-                  Register
+                  <ChevronRight className="h-4 w-4 group-hover:translate-x-1 transition-transform" />
                 </Button>
               </Link>
             </div>
