@@ -1,26 +1,30 @@
-// utils/sendMail.js
 import nodemailer from "nodemailer";
+import dotenv from "dotenv";
+
+dotenv.config({ path: "./.env" }); // ensure env variables are loaded
 
 const transporter = nodemailer.createTransport({
-  service: "gmail",
+  host: "smtp.gmail.com",
+  port: 465, // SSL port
+  secure: true, // use SSL
   auth: {
     user: process.env.MAIL_USER,
     pass: process.env.MAIL_PASS,
   },
 });
 
-const sendMail = async (to, subject, text) => {
+export default async function sendMail(to, subject, text) {
   try {
-    await transporter.sendMail({
-      from: process.env.MAIL_USER,
+    const info = await transporter.sendMail({
+      from: `"AlgoRhythm Support" <${process.env.MAIL_USER}>`,
       to,
       subject,
       text,
     });
-    console.log(`📧 Email sent to ${to}`);
+    console.log("✅ Email sent successfully:", info.response);
+    return info;
   } catch (error) {
-    console.error("Email send error:", error);
+    console.error("❌ Email send error:", error);
+    throw error;
   }
-};
-
-export default sendMail;
+}

@@ -8,6 +8,8 @@ const sessionSchema = new mongoose.Schema(
     scheduledStart: Date,
     scheduledEnd: Date,
     assignedCoaches: [{ type: mongoose.Schema.Types.ObjectId, ref: "Person" }],
+    enrolledPlayers: [{ type: mongoose.Schema.Types.ObjectId, ref: "Person" }],
+    venue: String,
     status: { type: String, enum: ["scheduled", "completed"], default: "scheduled" },
   },
   { timestamps: true }

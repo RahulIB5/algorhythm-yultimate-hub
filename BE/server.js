@@ -6,6 +6,7 @@ import connectDB from "./config/db.js";
 
 // Import routes
 import authRoutes from "./routes/authRoutes.js";
+import sessionRoutes from "./routes/sessionRoutes.js";
 
 dotenv.config();
 connectDB();
@@ -23,6 +24,7 @@ app.get("/", (req, res) => {
 
 // API Routes
 app.use("/api/auth", authRoutes);
+app.use("/api/sessions", sessionRoutes);
 
 // Error handler (optional but good practice)
 app.use((err, req, res, next) => {
