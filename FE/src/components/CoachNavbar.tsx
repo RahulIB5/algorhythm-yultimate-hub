@@ -2,10 +2,25 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Menu, X, Clipboard, Home, LogOut, RefreshCw, ChevronDown } from "lucide-react";
 import ThemeToggle from "./ThemeToggle";
+import {
+  Dialog,
+  DialogTrigger,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import TournamentList from "@/components/TournamentList";
+import TeamRegisterForm from "@/components/TeamRegisterForm";
 
 const CoachNavbar = () => {
   const [isOpen, setIsOpen] = useState(false);
   const [showRoleMenu, setShowRoleMenu] = useState(false);
+  const [showTournaments, setShowTournaments] = useState(false);
+  const [selectedTournament, setSelectedTournament] = useState(null);
+  const [showRegisterForm, setShowRegisterForm] = useState(false);
+  const [registerTournament, setRegisterTournament] = useState(null);
 
   const handleLogout = () => {
     // Add your logout logic here (clear tokens, etc.)
@@ -32,6 +47,8 @@ const CoachNavbar = () => {
   const handleHome = () => {
     window.location.href = "/coach-dashboard";
   };
+
+  // selectedTournament state is used to open details dialog (data comes from TournamentList)
 
   return (
     <>
@@ -62,6 +79,36 @@ const CoachNavbar = () => {
                 <Home className="h-4 w-4" />
                 Dashboard
               </Button>
+
+              {/* Tournaments Button */}
+              <div className="relative">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="rounded-full gap-2 hover:bg-orange-500/10 hover:text-orange-600"
+                  onClick={() => setShowTournaments(!showTournaments)}
+                >
+                  <Clipboard className="h-4 w-4" />
+                  Tournaments
+                </Button>
+
+                {showTournaments && (
+                  <div className="absolute top-full mt-2 right-0 z-50">
+                    <TournamentList
+                      onSelect={(t) => {
+                        setSelectedTournament(t);
+                        setShowTournaments(false);
+                      }}
+                      onClose={() => setShowTournaments(false)}
+                      onRegister={(t) => {
+                        setRegisterTournament(t);
+                        setShowRegisterForm(true);
+                        setShowTournaments(false);
+                      }}
+                    />
+                  </div>
+                )}
+              </div>
 
               {/* Switch Roles Dropdown */}
               <div className="relative">
@@ -153,6 +200,17 @@ const CoachNavbar = () => {
                 Dashboard
               </button>
 
+              <button
+                onClick={() => {
+                  setShowTournaments(true);
+                  setIsOpen(false);
+                }}
+                className="flex items-center gap-2 py-2 w-full text-foreground hover:text-orange-600 transition-colors"
+              >
+                <Clipboard className="h-4 w-4" />
+                Tournaments
+              </button>
+
               <div className="border-t border-border pt-3 mt-3">
                 <p className="text-xs font-semibold text-muted-foreground mb-2 px-2">SWITCH ROLE</p>
                 <button
@@ -213,6 +271,41 @@ const CoachNavbar = () => {
           onClick={() => setShowRoleMenu(false)}
         ></div>
       )}
+
+      {showTournaments && (
+        <div className="fixed inset-0 z-40" onClick={() => setShowTournaments(false)}></div>
+      )}
+
+      {/* Tournament Details Dialog */}
+      {selectedTournament && (
+        <Dialog open={!!selectedTournament} onOpenChange={(open) => { if (!open) setSelectedTournament(null); }}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>{selectedTournament.name}</DialogTitle>
+              <DialogDescription>
+                {new Date(selectedTournament.date).toLocaleDateString()} • {selectedTournament.format} • Max Teams: {selectedTournament.maxTeams}
+              </DialogDescription>
+            </DialogHeader>
+
+            <div className="mt-2 space-y-4">
+              <p className="text-sm">{selectedTournament.description}</p>
+              <div>
+                <h6 className="text-sm font-semibold">Rules & Guidelines</h6>
+                <p className="text-sm text-muted-foreground">{selectedTournament.rules}</p>
+              </div>
+            </div>
+
+            <DialogFooter>
+              <div className="w-full flex justify-end">
+                <Button className="bg-orange-500 text-white" onClick={() => { setRegisterTournament(selectedTournament); setShowRegisterForm(true); }}>Register Now</Button>
+              </div>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      )}
+
+      {/* Team Register Form Dialog (opened when Register Now is clicked) */}
+      <TeamRegisterForm open={showRegisterForm} onOpenChange={(open) => setShowRegisterForm(open)} tournament={registerTournament} />
     </>
   );
 };

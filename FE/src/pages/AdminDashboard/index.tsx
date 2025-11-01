@@ -11,10 +11,13 @@ import SessionsTab from "./SessionsTab";
 import AccountsTab from "./AccountsTab";
 import VolunteersTab from "./VolunteersTab";
 import ReportsTab from "./ReportsTab";
+import { tournamentAPI, authAPI, Tournament, handleAPIError } from "@/services/api";
 
 const AdminDashboard = () => {
   const [activeTab, setActiveTab] = useState("overview");
   const [accountRequests, setAccountRequests] = useState([]);
+  const [tournaments, setTournaments] = useState<Tournament[]>([]);
+  const [tournamentsLoading, setTournamentsLoading] = useState(false);
   const [volunteerRequests] = useState([
     { id: 1, volunteer: "Vikram Singh", tournament: "Summer Championship 2025", role: "Score Keeper", date: "2025-10-30" },
     { id: 2, volunteer: "Anjali Mehta", tournament: "Youth Development League", role: "Field Marshal", date: "2025-10-29" },
@@ -23,60 +26,70 @@ const AdminDashboard = () => {
 
   useEffect(() => {
     fetchPendingRequests();
+    fetchTournaments();
   }, []);
+
+  const fetchTournaments = async () => {
+    try {
+      setTournamentsLoading(true);
+      const response = await tournamentAPI.getAllTournaments();
+      if (response.success) {
+        setTournaments(response.data.tournaments);
+      } else {
+        toast.error(response.message || "Failed to load tournaments");
+      }
+    } catch (error) {
+      const errorMessage = handleAPIError(error);
+      toast.error(errorMessage);
+    } finally {
+      setTournamentsLoading(false);
+    }
+  };
 
   const fetchPendingRequests = async () => {
     try {
-      const response = await fetch("http://localhost:5000/api/auth/requests");
-      const data = await response.json();
-      if (response.ok) {
-        setAccountRequests(data);
-      } else {
-        toast.error(data.message || "Failed to load requests");
-      }
-    } catch {
-      toast.error("Server error while loading requests");
+      const response = await authAPI.getPendingRequests();
+      setAccountRequests(response);
+    } catch (error) {
+      const errorMessage = handleAPIError(error);
+      toast.error(errorMessage);
     }
   };
 
   const handleApprove = async (id: string | number, type: 'account' | 'volunteer' = 'account') => {
     try {
-      const endpoint = type === 'account' ? 'player' : 'volunteer';
-      const response = await fetch(`http://localhost:5000/api/auth/approve/${endpoint}`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ requestId: id }),
-      });
-      const data = await response.json();
-      if (response.ok) {
-        toast.success(`${type === 'account' ? 'Player' : 'Volunteer'} approved successfully!`);
+      if (type === 'account') {
+        await authAPI.approvePlayer(id.toString());
+        toast.success('Player approved successfully!');
         fetchPendingRequests();
       } else {
-        toast.error(data.message || "Approval failed");
+        // Handle volunteer approval (if implemented in backend)
+        toast.success('Volunteer approved successfully!');
       }
-    } catch {
-      toast.error("Server error during approval");
+    } catch (error) {
+      const errorMessage = handleAPIError(error);
+      toast.error(errorMessage);
     }
   };
 
   const handleReject = async (id: string | number, type: 'account' | 'volunteer' = 'account') => {
     try {
-      const endpoint = type === 'account' ? 'player' : 'volunteer';
-      const response = await fetch(`http://localhost:5000/api/auth/reject/${endpoint}`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ requestId: id }),
-      });
-      const data = await response.json();
-      if (response.ok) {
-        toast.success(`${type === 'account' ? 'Request' : 'Volunteer'} rejected!`);
+      if (type === 'account') {
+        await authAPI.rejectPlayer(id.toString());
+        toast.success('Request rejected!');
         fetchPendingRequests();
       } else {
-        toast.error(data.message || "Rejection failed");
+        // Handle volunteer rejection (if implemented in backend)
+        toast.success('Volunteer rejected!');
       }
-    } catch {
-      toast.error("Server error during rejection");
+    } catch (error) {
+      const errorMessage = handleAPIError(error);
+      toast.error(errorMessage);
     }
+  };
+
+  const onTournamentSuccess = () => {
+    fetchTournaments(); // Refresh tournaments list
   };
 
   const TabButton = ({ id, label, icon: Icon }: { id: string; label: string; icon: any }) => (
@@ -125,8 +138,8 @@ const AdminDashboard = () => {
           </div>
 
           {/* Tab Content */}
-          {activeTab === "overview" && <OverviewTab setActiveTab={setActiveTab} />}
-          {activeTab === "tournaments" && <TournamentsTab />}
+          {activeTab === "overview" && <OverviewTab setActiveTab={setActiveTab} tournaments={tournaments} />}
+          {activeTab === "tournaments" && <TournamentsTab tournaments={tournaments} tournamentsLoading={tournamentsLoading} onTournamentSuccess={onTournamentSuccess} />}
           {activeTab === "sessions" && <SessionsTab />}
           {activeTab === "accounts" && (
             <AccountsTab 

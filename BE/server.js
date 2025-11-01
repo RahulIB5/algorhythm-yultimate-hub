@@ -2,13 +2,23 @@
 import express from "express";
 import dotenv from "dotenv";
 import cors from "cors";
+import path from "path";
+import { fileURLToPath } from "url";
 import connectDB from "./config/db.js";
 
 // Import routes
 import authRoutes from "./routes/authRoutes.js";
 import sessionRoutes from "./routes/sessionRoutes.js";
+import tournamentRoutes from "./routes/tournamentRoutes.js";
+import teamRoutes from "./routes/teamRoutes.js"
+// ✅ Fix for __dirname and __filename in ES Modules
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
+// Load environment variables
 dotenv.config();
+
+// Connect to MongoDB
 connectDB();
 
 const app = express();
@@ -17,16 +27,20 @@ const app = express();
 app.use(express.json());
 app.use(cors());
 
-// Basic route for sanity check
+// API Routes
+app.use("/api/auth", authRoutes);
+app.use("/api/sessions", sessionRoutes);
+app.use("/api/tournaments", tournamentRoutes);
+app.use("/api/teams",teamRoutes)
+// ✅ Serve uploaded files statically
+app.use("/uploads", express.static(path.join(__dirname, "uploads")));
+
+// Root route (for testing)
 app.get("/", (req, res) => {
   res.send("✅ TAMUI Backend API Running");
 });
 
-// API Routes
-app.use("/api/auth", authRoutes);
-app.use("/api/sessions", sessionRoutes);
-
-// Error handler (optional but good practice)
+// Global error handler
 app.use((err, req, res, next) => {
   console.error("Error:", err.stack);
   res.status(500).json({ message: "Server Error", error: err.message });

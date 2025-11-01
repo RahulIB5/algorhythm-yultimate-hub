@@ -1,15 +1,50 @@
 import { useState } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Trophy, Target, Calendar, Settings, Plus, X } from "lucide-react";
+import { Card, CardContent } from "@/components/ui/card";
+import { Trophy, Target, Calendar, Settings, Plus, Loader2 } from "lucide-react";
+import { Tournament } from "@/services/api";
+import CreateTournament from "@/components/CreateTournament";
 
-const TournamentsTab = () => {
+interface TournamentsTabProps {
+  tournaments: Tournament[];
+  tournamentsLoading: boolean;
+  onTournamentSuccess: () => void;
+}
+
+const TournamentsTab = ({ tournaments, tournamentsLoading, onTournamentSuccess }: TournamentsTabProps) => {
   const [showCreateTournament, setShowCreateTournament] = useState(false);
 
-  const tournaments = [
-    { id: 1, name: "Summer Championship 2025", teams: 24, status: "Upcoming", date: "2025-11-15" },
-    { id: 2, name: "Youth Development League", teams: 16, status: "In Progress", date: "2025-11-01" },
-    { id: 3, name: "Spring Open Tournament", teams: 20, status: "Completed", date: "2025-10-15" }
-  ];
+  // Format date range for tournaments
+  const formatDateRange = (startDate: string, endDate: string) => {
+    const start = new Date(startDate);
+    const end = new Date(endDate);
+    
+    const startMonth = start.toLocaleDateString('en-US', { month: 'short' });
+    const endMonth = end.toLocaleDateString('en-US', { month: 'short' });
+    const startDay = start.getDate();
+    const endDay = end.getDate();
+    const year = start.getFullYear();
+    
+    if (startMonth === endMonth) {
+      return `${startMonth} ${startDay} - ${endDay}, ${year}`;
+    } else {
+      return `${startMonth} ${startDay} - ${endMonth} ${endDay}, ${year}`;
+    }
+  };
+
+  // Get tournament status
+  const getTournamentStatus = (startDate: string, endDate: string) => {
+    const now = new Date();
+    const start = new Date(startDate);
+    const end = new Date(endDate);
+    
+    if (now >= start && now <= end) {
+      return 'In Progress';
+    } else if (now < start) {
+      return 'Upcoming';
+    } else {
+      return 'Completed';
+    }
+  };
 
   return (
     <div className="space-y-6">
@@ -25,100 +60,93 @@ const TournamentsTab = () => {
       </div>
 
       {showCreateTournament && (
-        <Card className="glass-card border-2 border-blue-500/50">
-          <CardHeader>
-            <CardTitle className="flex items-center justify-between">
-              <span>Create New Tournament</span>
-              <button onClick={() => setShowCreateTournament(false)}>
-                <X className="h-5 w-5" />
-              </button>
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <form className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium mb-2">Tournament Name</label>
-                  <input type="text" className="w-full px-3 py-2 rounded-lg bg-muted border border-border focus:border-blue-500 focus:outline-none" placeholder="Enter tournament name" />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium mb-2">Date</label>
-                  <input type="date" className="w-full px-3 py-2 rounded-lg bg-muted border border-border focus:border-blue-500 focus:outline-none" />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium mb-2">Max Teams</label>
-                  <input type="number" className="w-full px-3 py-2 rounded-lg bg-muted border border-border focus:border-blue-500 focus:outline-none" placeholder="24" />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium mb-2">Format</label>
-                  <select className="w-full px-3 py-2 rounded-lg bg-muted border border-border focus:border-blue-500 focus:outline-none">
-                    <option>Pool Play + Bracket</option>
-                    <option>Round Robin</option>
-                    <option>Single Elimination</option>
-                    <option>Swiss System</option>
-                  </select>
-                </div>
-              </div>
-              <div>
-                <label className="block text-sm font-medium mb-2">Rules & Guidelines</label>
-                <textarea className="w-full px-3 py-2 rounded-lg bg-muted border border-border focus:border-blue-500 focus:outline-none h-32" placeholder="Enter tournament rules, eligibility criteria, and guidelines..."></textarea>
-              </div>
-              <div className="flex gap-3">
-                <button type="submit" className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
-                  Create Tournament
-                </button>
-                <button type="button" onClick={() => setShowCreateTournament(false)} className="px-6 py-2 bg-muted text-foreground rounded-lg hover:bg-muted/80 transition-colors">
-                  Cancel
-                </button>
-              </div>
-            </form>
-          </CardContent>
-        </Card>
+        <CreateTournament 
+          onClose={() => setShowCreateTournament(false)}
+          onSuccess={() => {
+            setShowCreateTournament(false);
+            onTournamentSuccess();
+          }}
+        />
       )}
 
-      <div className="grid grid-cols-1 gap-4">
-        {tournaments.map((tournament) => (
-          <Card key={tournament.id} className="glass-card glass-hover">
-            <CardContent className="p-6">
-              <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                <div className="flex-1">
-                  <div className="flex items-center gap-3 mb-2">
-                    <h3 className="text-xl font-bold">{tournament.name}</h3>
-                    <span className={`text-xs px-3 py-1 rounded-full ${
-                      tournament.status === 'In Progress' 
-                        ? 'bg-blue-500/10 text-blue-600' 
-                        : tournament.status === 'Upcoming'
-                        ? 'bg-orange-500/10 text-orange-600'
-                        : 'bg-muted text-muted-foreground'
-                    }`}>
-                      {tournament.status}
-                    </span>
+      {tournamentsLoading ? (
+        <div className="flex items-center justify-center py-12">
+          <div className="text-center">
+            <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4" />
+            <p className="text-muted-foreground">Loading tournaments...</p>
+          </div>
+        </div>
+      ) : tournaments.length === 0 ? (
+        <Card className="glass-card p-12 text-center">
+          <Trophy className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
+          <h3 className="text-lg font-semibold mb-2">No tournaments yet</h3>
+          <p className="text-muted-foreground mb-4">
+            Create your first tournament to get started managing events.
+          </p>
+          <button 
+            onClick={() => setShowCreateTournament(true)}
+            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+          >
+            Create Tournament
+          </button>
+        </Card>
+      ) : (
+        <div className="grid grid-cols-1 gap-4">
+          {tournaments.map((tournament) => {
+            const status = getTournamentStatus(tournament.startDate, tournament.endDate);
+            return (
+              <Card key={tournament._id} className="glass-card glass-hover">
+                <CardContent className="p-6">
+                  <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                    <div className="flex-1">
+                      <div className="flex items-center gap-3 mb-2">
+                        <h3 className="text-xl font-bold">{tournament.name}</h3>
+                        <span className={`text-xs px-3 py-1 rounded-full ${
+                          status === 'In Progress' 
+                            ? 'bg-green-500/10 text-green-600' 
+                            : status === 'Upcoming'
+                            ? 'bg-blue-500/10 text-blue-600'
+                            : 'bg-gray-500/10 text-gray-600'
+                        }`}>
+                          {status}
+                        </span>
+                      </div>
+                      <div className="flex flex-wrap gap-4 text-sm text-muted-foreground mb-2">
+                        <span className="flex items-center gap-1">
+                          <Target className="h-4 w-4" />
+                          {tournament.registeredTeams?.length || 0}/{tournament.maxTeams} teams
+                        </span>
+                        <span className="flex items-center gap-1">
+                          <Calendar className="h-4 w-4" />
+                          {formatDateRange(tournament.startDate, tournament.endDate)}
+                        </span>
+                        <span className="flex items-center gap-1">
+                          <Trophy className="h-4 w-4" />
+                          {tournament.division}
+                        </span>
+                      </div>
+                      {tournament.location && (
+                        <p className="text-sm text-muted-foreground">
+                          📍 {tournament.location}
+                        </p>
+                      )}
+                    </div>
+                    <div className="flex gap-2">
+                      <button className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
+                        <Settings className="h-4 w-4 inline mr-2" />
+                        Manage
+                      </button>
+                      <button className="px-4 py-2 bg-muted text-foreground rounded-lg hover:bg-muted/80 transition-colors">
+                        View Details
+                      </button>
+                    </div>
                   </div>
-                  <div className="flex flex-wrap gap-4 text-sm text-muted-foreground">
-                    <span className="flex items-center gap-1">
-                      <Target className="h-4 w-4" />
-                      {tournament.teams} teams
-                    </span>
-                    <span className="flex items-center gap-1">
-                      <Calendar className="h-4 w-4" />
-                      {tournament.date}
-                    </span>
-                  </div>
-                </div>
-                <div className="flex gap-2">
-                  <button className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
-                    <Settings className="h-4 w-4 inline mr-2" />
-                    Manage
-                  </button>
-                  <button className="px-4 py-2 bg-muted text-foreground rounded-lg hover:bg-muted/80 transition-colors">
-                    View Details
-                  </button>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
+                </CardContent>
+              </Card>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 };

@@ -4,9 +4,11 @@ import {
   Users, Trophy, Target, TrendingUp, Calendar, CheckCircle, AlertCircle
 } from "lucide-react";
 import { toast } from "sonner";
+import { Tournament } from "@/services/api";
 
 interface OverviewTabProps {
   setActiveTab: (tab: string) => void;
+  tournaments?: Tournament[];
 }
 
 interface Session {
@@ -27,9 +29,31 @@ interface Session {
   status: "scheduled" | "completed";
 }
 
-const OverviewTab = ({ setActiveTab }: OverviewTabProps) => {
+const OverviewTab = ({ setActiveTab, tournaments = [] }: OverviewTabProps) => {
   const [sessions, setSessions] = useState<Session[]>([]);
   const [loading, setLoading] = useState(true);
+
+  // Get tournament status helper
+  const getTournamentStatus = (startDate: string, endDate: string) => {
+    const now = new Date();
+    const start = new Date(startDate);
+    const end = new Date(endDate);
+    
+    if (now >= start && now <= end) {
+      return 'In Progress';
+    } else if (now < start) {
+      return 'Upcoming';
+    } else {
+      return 'Completed';
+    }
+  };
+
+  // Calculate dynamic stats based on real data
+  const activeTournaments = tournaments.filter(t => 
+    getTournamentStatus(t.startDate, t.endDate) === 'In Progress'
+  ).length;
+  
+  const totalRegisteredTeams = tournaments.reduce((sum, t) => sum + (t.registeredTeams?.length || 0), 0);
 
   useEffect(() => {
     fetchSessions();
@@ -78,8 +102,8 @@ const OverviewTab = ({ setActiveTab }: OverviewTabProps) => {
 
   const stats = [
     { icon: Users, label: "Total Players", value: "1,247", change: "+12%" },
-    { icon: Trophy, label: "Active Tournaments", value: "8", change: "+2" },
-    { icon: Target, label: "Teams Registered", value: "156", change: "+18%" },
+    { icon: Trophy, label: "Active Tournaments", value: activeTournaments.toString(), change: tournaments.length > 0 ? "+2" : "0" },
+    { icon: Target, label: "Teams Registered", value: totalRegisteredTeams.toString(), change: "+18%" },
     { icon: TrendingUp, label: "Avg Spirit Score", value: "14.2", change: "+0.8" },
     { icon: Calendar, label: "Sessions This Month", value: "42", change: "+5" },
     { icon: CheckCircle, label: "Attendance Rate", value: "87%", change: "+3%" },

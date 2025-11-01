@@ -3,6 +3,7 @@ import { Users, Calendar, BookOpen, BarChart3 } from "lucide-react";
 import CoachNavbar from "@/components/CoachNavbar";
 import BottomNav from "@/components/BottomNav";
 import CoachNotifications from "@/components/CoachNotifications";
+import CoachTeams from "@/components/CoachTeams";
 import OverviewTab from "./OverviewTab";
 import UpcomingSessionsTab from "./UpcomingSessionsTab";
 import QuickActionsTab from "./QuickActionsTab";
@@ -10,6 +11,7 @@ import SessionsTab from "./SessionsTab";
 
 const CoachDashboard = () => {
   const [activeTab, setActiveTab] = useState("overview");
+  const [showTeams, setShowTeams] = useState(false);
 
   const TabButton = ({ id, label, icon: Icon }: { id: string; label: string; icon: any }) => (
     <button
@@ -52,8 +54,21 @@ const CoachDashboard = () => {
                   Track sessions and student development
                 </p>
               </div>
+              
+              {/* Your Teams button */}
+              <div className="ml-auto">
+                <button 
+                  id="open-your-teams" 
+                  onClick={() => setShowTeams(true)} 
+                  className="px-4 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition-colors"
+                >
+                  Your Teams
+                </button>
+              </div>
             </div>
           </div>
+
+          <CoachTeams open={showTeams} onOpenChange={(open) => setShowTeams(open)} />
 
           {/* Navigation Tabs */}
           <div className="flex flex-wrap gap-3 mb-8">

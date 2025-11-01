@@ -69,7 +69,8 @@ const RoleLogin = () => {
       if (response.ok) {
         localStorage.setItem("token", data.token);
         localStorage.setItem("userRole", role || "admin");
-        if (data.user?.id) {
+        // store logged-in user's id (coach id) for later use
+        if (data.user && data.user.id) {
           localStorage.setItem("userId", data.user.id);
         }
         toast.success(`Welcome ${role || "admin"}!`);

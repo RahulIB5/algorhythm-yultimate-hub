@@ -1,13 +1,30 @@
 import mongoose from "mongoose";
 
+const playerSchema = new mongoose.Schema(
+  {
+    name: { type: String, required: true },
+    playerId: { type: String, required: true },
+    email: { type: String },
+    age: { type: Number },
+    position: { type: String },
+  },
+  { _id: false }
+);
+
 const teamSchema = new mongoose.Schema(
   {
-    tournamentId: { type: mongoose.Schema.Types.ObjectId, ref: "Tournament" },
-    name: String,
-    managerId: { type: mongoose.Schema.Types.ObjectId, ref: "Person" },
-    logoUrl: String,
+    teamName: { type: String, required: true },
+    totalMembers: { type: Number, required: true },
+    players: { type: [playerSchema], default: [] },
+    tournamentId: { type: String },
+    coachId: { type: mongoose.Schema.Types.ObjectId, ref: "Person", required: true },
+    contactPhone: { type: String },
+    contactEmail: { type: String },
+    notes: { type: String },
   },
   { timestamps: true }
 );
 
-export default mongoose.model("Team", teamSchema);
+const Team = mongoose.model("Team", teamSchema);
+
+export default Team;
