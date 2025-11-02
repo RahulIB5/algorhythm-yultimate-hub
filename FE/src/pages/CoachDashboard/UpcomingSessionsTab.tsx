@@ -36,7 +36,7 @@ const UpcomingSessionsTab = () => {
         return;
       }
 
-      const response = await fetch(`http://localhost:5000/api/sessions/coach/${coachId}`);
+      const response = await fetch(`http://localhost:9000/api/sessions/coach/${coachId}`);
       const data = await response.json();
       if (response.ok) {
         setSessions(data);

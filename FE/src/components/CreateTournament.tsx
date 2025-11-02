@@ -112,7 +112,7 @@ const CreateTournament = ({ onClose, onSuccess }: CreateTournamentProps) => {
         submitData.append('image', selectedImage);
       }
 
-      const response = await axios.post('http://localhost:5000/api/tournaments', submitData, {
+      const response = await axios.post('http://localhost:9000/api/tournaments', submitData, {
         headers: {
           'Content-Type': 'multipart/form-data',
         },

@@ -36,8 +36,8 @@ const PlayerDashboard = () => {
     try {
       setLoading(true);
       const [profileRes, statsRes] = await Promise.all([
-        fetch(`http://localhost:5000/api/player/${id}`),
-        fetch(`http://localhost:5000/api/player/${id}/stats`),
+        fetch(`http://localhost:9000/api/player/${id}`),
+        fetch(`http://localhost:9000/api/player/${id}/stats`),
       ]);
 
       if (profileRes.ok) {

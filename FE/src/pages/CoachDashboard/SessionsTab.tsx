@@ -65,7 +65,7 @@ const SessionsTab = () => {
   const fetchSessions = async (coachId: string) => {
     try {
       setLoading(true);
-      const response = await fetch(`http://localhost:5000/api/sessions/coach/${coachId}`);
+      const response = await fetch(`http://localhost:9000/api/sessions/coach/${coachId}`);
       const data = await response.json();
       if (response.ok) {
         setSessions(data);
@@ -81,7 +81,7 @@ const SessionsTab = () => {
 
   const fetchPlayers = async () => {
     try {
-      const response = await fetch("http://localhost:5000/api/sessions/players/list");
+      const response = await fetch("http://localhost:9000/api/sessions/players/list");
       const data = await response.json();
       if (response.ok) {
         setPlayers(data);
@@ -117,7 +117,7 @@ const SessionsTab = () => {
 
     try {
       setAddingPlayers(true);
-      const response = await fetch(`http://localhost:5000/api/sessions/${selectedSessionId}/players`, {
+      const response = await fetch(`http://localhost:9000/api/sessions/${selectedSessionId}/players`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ playerIds: selectedPlayerIds }),

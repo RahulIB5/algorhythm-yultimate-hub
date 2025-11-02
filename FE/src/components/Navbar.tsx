@@ -30,7 +30,7 @@ const Navbar = () => {
                 Home
               </Link>
               <Link 
-                to="/about" 
+                to="/about-us" 
                 className="text-sm font-medium text-foreground/80 hover:text-primary transition-colors px-4 py-2 rounded-full hover:bg-accent"
               >
                 About

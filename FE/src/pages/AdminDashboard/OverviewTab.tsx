@@ -61,7 +61,7 @@ const OverviewTab = ({ setActiveTab, tournaments = [] }: OverviewTabProps) => {
 
   const fetchSessions = async () => {
     try {
-      const response = await fetch("http://localhost:5000/api/sessions");
+      const response = await fetch("http://localhost:9000/api/sessions");
       const data = await response.json();
       if (response.ok) {
         setSessions(data);

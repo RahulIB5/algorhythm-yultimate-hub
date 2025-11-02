@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Calendar, Heart, Users, Trophy, Camera, Star, Trophy as TrophyIcon, TrendingUp, Image as ImageIcon } from "lucide-react";
+import { Calendar, Heart, Users, Trophy, Camera, Star, Trophy as TrophyIcon, TrendingUp, Image as ImageIcon, UserCheck } from "lucide-react";
 import Navbar from "@/components/Navbar";
 import BottomNav from "@/components/BottomNav";
 import VolunteerNavbar from "@/components/VolunteerNavbar";
@@ -8,9 +8,10 @@ import VolunteerNotifications from "@/components/VolunteerNotifications";
 import AssignedTournamentsTab from "./VolunteerDashboard/AssignedTournamentsTab";
 import LiveScoringTab from "./VolunteerDashboard/LiveScoringTab";
 import MatchImagesTab from "./VolunteerDashboard/MatchImagesTab";
+import MatchAttendanceTab from "./VolunteerDashboard/MatchAttendanceTab";
 
 const VolunteerDashboard = () => {
-  const [activeTab, setActiveTab] = useState<"overview" | "assigned-tournaments" | "live-scoring" | "match-images">("overview");
+  const [activeTab, setActiveTab] = useState<"overview" | "assigned-tournaments" | "attendance" | "live-scoring" | "match-images">("overview");
 
   const stats = [
     { icon: Calendar, label: "Upcoming Events", value: "5", change: "This month" },
@@ -92,6 +93,17 @@ const VolunteerDashboard = () => {
               Assigned Tournaments
             </button>
             <button
+              onClick={() => setActiveTab("attendance")}
+              className={`px-4 py-2 font-medium transition-colors ${
+                activeTab === "attendance"
+                  ? "border-b-2 border-primary text-primary"
+                  : "text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              <UserCheck className="h-4 w-4 inline mr-2" />
+              Attendance
+            </button>
+            <button
               onClick={() => setActiveTab("live-scoring")}
               className={`px-4 py-2 font-medium transition-colors ${
                 activeTab === "live-scoring"
@@ -117,6 +129,7 @@ const VolunteerDashboard = () => {
 
           {/* Tab Content */}
           {activeTab === "assigned-tournaments" && <AssignedTournamentsTab />}
+          {activeTab === "attendance" && <MatchAttendanceTab />}
           {activeTab === "live-scoring" && <LiveScoringTab />}
           {activeTab === "match-images" && <MatchImagesTab />}
 

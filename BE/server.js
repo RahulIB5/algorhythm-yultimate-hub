@@ -18,6 +18,7 @@ import predictionRoutes from "./routes/predictionRoutes.js";
 import leaderboardRoutes from "./routes/leaderboardRoutes.js";
 import matchImageRoutes from "./routes/matchImageRoutes.js";
 import attendanceRoutes from "./routes/attendanceRoutes.js";
+import matchAttendanceRoutes from "./routes/matchAttendanceRoutes.js";
 import studentRoutes from "./routes/studentRoutes.js";
 import institutionRoutes from "./routes/institutionRoutes.js";
 import playerRoutes from "./routes/playerRoutes.js";
@@ -50,6 +51,7 @@ app.use("/api/predictions", predictionRoutes);
 app.use("/api/leaderboard", leaderboardRoutes);
 app.use("/api/match-images", matchImageRoutes);
 app.use("/api/attendance", attendanceRoutes);
+app.use("/api/match-attendance", matchAttendanceRoutes);
 app.use("/api/students", studentRoutes);
 app.use("/api/institutions", institutionRoutes);
 app.use("/api/player", playerRoutes);
@@ -69,5 +71,5 @@ app.use((err, req, res, next) => {
 });
 
 // Start server
-const PORT = process.env.PORT || 5000;
+const PORT = process.env.PORT || 9000;
 app.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`));

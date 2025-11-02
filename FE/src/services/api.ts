@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-const API_BASE_URL = 'http://localhost:5000/api';
+const API_BASE_URL = 'http://localhost:9000/api';
 
 // Create axios instance with default config
 const api = axios.create({
@@ -235,6 +235,32 @@ export const scheduleAPI = {
   // Delete matches by tournament ID
   deleteMatchesByTournament: async (tournamentId: string): Promise<{ success: boolean; message: string; deletedCount: number }> => {
     const response = await api.delete(`/schedule/tournaments/${tournamentId}/matches`);
+    return response.data;
+  },
+};
+
+// Team API interfaces
+export interface TeamWithStats {
+  teamName: string;
+  players: string[];
+  wins: number;
+  losses: number;
+}
+
+export interface AllTeamsResponse {
+  success: boolean;
+  message?: string;
+  data: {
+    teams: TeamWithStats[];
+    count: number;
+  };
+}
+
+// Team API functions
+export const teamAPI = {
+  // Get all teams with stats
+  getAllTeams: async (): Promise<AllTeamsResponse> => {
+    const response = await api.get('/teams');
     return response.data;
   },
 };
@@ -708,6 +734,156 @@ export const matchImageAPI = {
       ? `/match-images?tournamentId=${tournamentId}`
       : `/match-images`;
     const response = await api.get(url);
+    return response.data;
+  },
+};
+
+// Match Attendance interfaces
+export interface MatchPlayer {
+  _id?: string;
+  playerId?: string;
+  firstName?: string;
+  lastName?: string;
+  name?: string;
+  email?: string;
+  uniqueUserId?: string;
+  jerseyNumber?: number;
+  attendance?: {
+    status: 'present' | 'absent' | 'late';
+    recordedAt: string;
+    recordedBy: string;
+  } | null;
+}
+
+export interface MatchPlayersResponse {
+  success: boolean;
+  message?: string;
+  data: {
+    match: {
+      _id: string;
+      teamA: {
+        _id: string;
+        teamName: string;
+      };
+      teamB: {
+        _id: string;
+        teamName: string;
+      };
+      startTime: string;
+      status: string;
+    };
+    teamAPlayers: MatchPlayer[];
+    teamBPlayers: MatchPlayer[];
+  };
+}
+
+export interface MatchAttendanceStatusResponse {
+  success: boolean;
+  message?: string;
+  data: {
+    match: {
+      _id: string;
+      teamA: {
+        _id: string;
+        teamName: string;
+      };
+      teamB: {
+        _id: string;
+        teamName: string;
+      };
+    };
+    attendance: {
+      isComplete: boolean;
+      totalPlayers: number;
+      attendanceCount: number;
+      presentCount: number;
+      absentCount: number;
+      lateCount: number;
+      percentage: number;
+    };
+  };
+}
+
+export interface MatchAttendanceRecord {
+  _id: string;
+  matchId: string;
+  player: {
+    _id: string;
+    firstName: string;
+    lastName: string;
+    email: string;
+    uniqueUserId: string;
+  };
+  team: {
+    _id: string;
+    teamName: string;
+  };
+  status: 'present' | 'absent' | 'late';
+  recordedBy: {
+    _id: string;
+    firstName: string;
+    lastName: string;
+  };
+  recordedAt: string;
+  createdAt: string;
+}
+
+export interface MatchAttendanceResponse {
+  success: boolean;
+  message?: string;
+  data: {
+    attendance: MatchAttendanceRecord[];
+    count: number;
+  };
+}
+
+// Match Attendance API functions
+export const matchAttendanceAPI = {
+  // Get all players for a match (from both teams)
+  getMatchPlayers: async (matchId: string): Promise<MatchPlayersResponse> => {
+    const response = await api.get(`/match-attendance/matches/${matchId}/players`);
+    return response.data;
+  },
+
+  // Check attendance status for a match
+  checkAttendanceStatus: async (matchId: string): Promise<MatchAttendanceStatusResponse> => {
+    const response = await api.get(`/match-attendance/matches/${matchId}/status`);
+    return response.data;
+  },
+
+  // Get attendance records for a match
+  getMatchAttendance: async (matchId: string): Promise<MatchAttendanceResponse> => {
+    const response = await api.get(`/match-attendance/matches/${matchId}/attendance`);
+    return response.data;
+  },
+
+  // Mark attendance for players in a match
+  markMatchAttendance: async (
+    matchId: string,
+    data: {
+      attendanceData: Array<{
+        playerId: string;
+        teamId: string;
+        status: 'present' | 'absent' | 'late';
+      }>;
+      volunteerId: string;
+    }
+  ): Promise<{
+    success: boolean;
+    message: string;
+    data: {
+      success: number;
+      failed: number;
+      results: Array<{
+        playerId: string;
+        playerName: string;
+        status: string;
+        attendanceId: string;
+      }>;
+      errors?: Array<{ playerId: string; error: string }>;
+    };
+  }> => {
+    const response = await api.post(`/match-attendance/matches/${matchId}/attendance`, data);
     return response.data;
   },
 };
