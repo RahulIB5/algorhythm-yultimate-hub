@@ -55,7 +55,6 @@ const Navbar = () => {
               <LanguageSelector />
               <ThemeToggle />
               
-              
               <Link to="/select-role">
                 <Button 
                   size="sm" 
