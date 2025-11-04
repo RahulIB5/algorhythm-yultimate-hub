@@ -2,12 +2,33 @@ import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { 
   Trophy, Users, TrendingUp, FileDown, Download, BarChart3, 
   UserCheck, Calendar, Target, Award, Activity
 } from "lucide-react";
 import { analyticsAPI, tournamentAPI, Tournament, TournamentSummaryResponse, PlayerParticipationResponse, handleAPIError } from "@/services/api";
 import { toast } from "sonner";
+import {
+  BarChart as ReBarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  Tooltip,
+  Legend,
+  ResponsiveContainer,
+  PieChart,
+  Pie,
+  Cell,
+  LineChart,
+  Line,
+  CartesianGrid,
+  RadarChart,
+  PolarGrid,
+  PolarAngleAxis,
+  PolarRadiusAxis,
+  Radar
+} from "recharts";
 
 const AnalyticsTab = () => {
   const [selectedTournament, setSelectedTournament] = useState<string>("");
@@ -16,6 +37,8 @@ const AnalyticsTab = () => {
   const [participationData, setParticipationData] = useState<PlayerParticipationResponse | null>(null);
   const [loading, setLoading] = useState(false);
   const [loadingParticipation, setLoadingParticipation] = useState(false);
+  const [activeVisualization, setActiveVisualization] = useState<"teams" | "spirit" | "participation" | null>(null);
+  const [isVizOpen, setIsVizOpen] = useState(false);
 
   useEffect(() => {
     fetchTournaments();
@@ -80,6 +103,16 @@ const AnalyticsTab = () => {
     } catch (error) {
       toast.error(handleAPIError(error));
     }
+  };
+
+  const openVisualization = (type: "teams" | "spirit" | "participation") => {
+    setActiveVisualization(type);
+    setIsVizOpen(true);
+  };
+
+  const closeVisualization = () => {
+    setIsVizOpen(false);
+    setActiveVisualization(null);
   };
 
   return (
@@ -181,7 +214,10 @@ const AnalyticsTab = () => {
           {summaryData.data.teams && summaryData.data.teams.length > 0 && (
             <Card className="glass-card">
               <CardHeader>
-                <CardTitle>Team Statistics</CardTitle>
+                <div className="flex items-center justify-between">
+                  <CardTitle>Team Statistics</CardTitle>
+                  <Button size="sm" variant="outline" onClick={() => openVisualization("teams")}>Visualize</Button>
+                </div>
               </CardHeader>
               <CardContent>
                 <div className="overflow-x-auto">
@@ -218,7 +254,10 @@ const AnalyticsTab = () => {
           {summaryData.data.spiritRankings && summaryData.data.spiritRankings.length > 0 && (
             <Card className="glass-card">
               <CardHeader>
-                <CardTitle>Spirit Rankings</CardTitle>
+                <div className="flex items-center justify-between">
+                  <CardTitle>Spirit Rankings</CardTitle>
+                  <Button size="sm" variant="outline" onClick={() => openVisualization("spirit")}>Visualize</Button>
+                </div>
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
@@ -254,49 +293,12 @@ const AnalyticsTab = () => {
       {selectedTournament && participationData && !loadingParticipation && (
         <Card className="glass-card">
           <CardHeader>
-            <CardTitle>Player Participation Data</CardTitle>
+            <div className="flex items-center justify-between">
+              <CardTitle>Player Participation Data</CardTitle>
+              <Button size="sm" variant="outline" onClick={() => openVisualization("participation")}>Visualize</Button>
+            </div>
           </CardHeader>
           <CardContent className="space-y-6">
-            {/* Gender Distribution */}
-            {participationData.data.genderDistribution && (
-              <div>
-                <h3 className="font-semibold mb-3">Gender Distribution</h3>
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                  {Object.entries(participationData.data.genderDistribution).map(([gender, count]) => (
-                    <div key={gender} className="p-4 rounded-lg bg-muted/50">
-                      <p className="text-sm text-muted-foreground">{gender}</p>
-                      <p className="text-2xl font-bold">{count}</p>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {/* Age Statistics */}
-            {participationData.data.ageStats && (
-              <div>
-                <h3 className="font-semibold mb-3">Age Statistics</h3>
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                  <div className="p-4 rounded-lg bg-muted/50">
-                    <p className="text-sm text-muted-foreground">Youngest</p>
-                    <p className="text-2xl font-bold">{participationData.data.ageStats.youngest || 'N/A'}</p>
-                  </div>
-                  <div className="p-4 rounded-lg bg-muted/50">
-                    <p className="text-sm text-muted-foreground">Oldest</p>
-                    <p className="text-2xl font-bold">{participationData.data.ageStats.oldest || 'N/A'}</p>
-                  </div>
-                  <div className="p-4 rounded-lg bg-muted/50">
-                    <p className="text-sm text-muted-foreground">Average</p>
-                    <p className="text-2xl font-bold">{participationData.data.ageStats.average.toFixed(1) || 'N/A'}</p>
-                  </div>
-                  <div className="p-4 rounded-lg bg-muted/50">
-                    <p className="text-sm text-muted-foreground">Median</p>
-                    <p className="text-2xl font-bold">{participationData.data.ageStats.median || 'N/A'}</p>
-                  </div>
-                </div>
-              </div>
-            )}
-
             {/* Participation Stats */}
             <div>
               <h3 className="font-semibold mb-3">Participation Statistics</h3>
@@ -343,6 +345,131 @@ const AnalyticsTab = () => {
           </CardContent>
         </Card>
       )}
+
+      {/* Visualization Modal */}
+      <Dialog open={isVizOpen} onOpenChange={(open) => (open ? undefined : closeVisualization())}>
+        <DialogContent className="max-w-4xl">
+          <DialogHeader>
+            <DialogTitle>{activeVisualization ? `Visualize ${activeVisualization === 'teams' ? 'Team Statistics' : activeVisualization === 'spirit' ? 'Spirit Rankings' : 'Player Participation'}` : 'Visualize'}</DialogTitle>
+          </DialogHeader>
+          <div className="rounded-lg bg-white/60 dark:bg-white/5 p-4 shadow">
+            {activeVisualization === 'teams' && summaryData?.data?.teams && summaryData.data.teams.length > 0 ? (
+              <div className="h-96">
+                <ResponsiveContainer width="100%" height="100%">
+                  {/* Grouped bar chart for Matches/Wins/Losses per team */}
+                  <ReBarChart data={summaryData.data.teams.map(t => ({
+                    teamName: t.teamName,
+                    matches: t.matchesPlayed,
+                    wins: t.wins,
+                    losses: t.losses
+                  }))} margin={{ top: 10, right: 20, left: 0, bottom: 10 }}>
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis dataKey="teamName" tick={{ fontSize: 12 }} interval={0} angle={-20} textAnchor="end" height={60} />
+                    <YAxis />
+                    <Tooltip />
+                    <Legend />
+                    <Bar dataKey="matches" fill="#2563eb" name="Matches" animationDuration={600} />
+                    <Bar dataKey="wins" fill="#16a34a" name="Wins" animationDuration={700} />
+                    <Bar dataKey="losses" fill="#dc2626" name="Losses" animationDuration={800} />
+                  </ReBarChart>
+                </ResponsiveContainer>
+              </div>
+            ) : activeVisualization === 'teams' ? (
+              <p className="text-center text-muted-foreground">No data available to visualize</p>
+            ) : null}
+
+            {activeVisualization === 'spirit' && summaryData?.data?.spiritRankings && summaryData.data.spiritRankings.length > 0 ? (
+              <div className="h-96">
+                <ResponsiveContainer width="100%" height="100%">
+                  <ReBarChart data={[...summaryData.data.spiritRankings].sort((a, b) => a.averageScore - b.averageScore)} layout="vertical" margin={{ top: 10, right: 20, left: 40, bottom: 10 }}>
+                    <defs>
+                      <linearGradient id="spiritGradient" x1="0" y1="0" x2="1" y2="0">
+                        <stop offset="0%" stopColor="#2563eb" />
+                        <stop offset="100%" stopColor="#7c3aed" />
+                      </linearGradient>
+                    </defs>
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis type="number" domain={[0, 20]} />
+                    <YAxis type="category" dataKey="teamName" width={120} />
+                    <Tooltip />
+                    <Legend />
+                    <Bar dataKey="averageScore" name="Avg Spirit Score" animationDuration={700}>
+                      {summaryData.data.spiritRankings
+                        .sort((a, b) => b.averageScore - a.averageScore)
+                        .map((entry, index) => (
+                          <Cell key={`cell-${entry.teamId}-${index}`} fill={index === 0 ? '#eab308' : index === 1 ? '#9ca3af' : index === 2 ? '#ea580c' : 'url(#spiritGradient)'} />
+                        ))}
+                    </Bar>
+                  </ReBarChart>
+                </ResponsiveContainer>
+              </div>
+            ) : activeVisualization === 'spirit' ? (
+              <p className="text-center text-muted-foreground">No data available to visualize</p>
+            ) : null}
+
+            {activeVisualization === 'participation' && participationData?.data ? (
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                {/* Attendance Pie */}
+                <div className="h-80">
+                  {participationData.data.attendanceStats && (participationData.data.attendanceStats.presentCount + participationData.data.attendanceStats.absentCount + participationData.data.attendanceStats.lateCount) > 0 ? (
+                    <ResponsiveContainer width="100%" height="100%">
+                      <PieChart>
+                        <Pie
+                          data={[
+                            { name: 'Present', value: participationData.data.attendanceStats.presentCount },
+                            { name: 'Absent', value: participationData.data.attendanceStats.absentCount },
+                            { name: 'Late', value: participationData.data.attendanceStats.lateCount },
+                          ]}
+                          dataKey="value"
+                          nameKey="name"
+                          outerRadius={100}
+                          innerRadius={60}
+                          paddingAngle={3}
+                          animationDuration={700}
+                        >
+                          <Cell fill="#16a34a" />
+                          <Cell fill="#dc2626" />
+                          <Cell fill="#f59e0b" />
+                        </Pie>
+                        <Tooltip />
+                        <Legend />
+                      </PieChart>
+                    </ResponsiveContainer>
+                  ) : (
+                    <div className="h-full flex items-center justify-center text-muted-foreground">No attendance data</div>
+                  )}
+                </div>
+
+                {/* Matches per player Line */}
+                <div className="h-80">
+                  {participationData.data.playerProfiles && participationData.data.playerProfiles.length > 0 ? (
+                    <ResponsiveContainer width="100%" height="100%">
+                      <LineChart
+                        data={[...participationData.data.playerProfiles]
+                          .sort((a, b) => (b.totalMatchesPlayed || 0) - (a.totalMatchesPlayed || 0))
+                          .slice(0, 20)
+                          .map((p, idx) => ({ index: idx + 1, name: p.name, matches: p.totalMatchesPlayed }))}
+                        margin={{ top: 10, right: 20, left: 0, bottom: 10 }}
+                      >
+                        <CartesianGrid strokeDasharray="3 3" />
+                        <XAxis dataKey="index" tick={{ fontSize: 12 }} />
+                        <YAxis />
+                        <Tooltip formatter={(value: any, name: any, props: any) => [value, 'Matches']} labelFormatter={(label) => `Player #${label}`} />
+                        <Legend />
+                        <Line type="monotone" dataKey="matches" name="Matches per Player" stroke="#2563eb" strokeWidth={2} dot={{ r: 3 }} activeDot={{ r: 5 }} animationDuration={700} />
+                      </LineChart>
+                    </ResponsiveContainer>
+                  ) : (
+                    <div className="h-full flex items-center justify-center text-muted-foreground">No player data</div>
+                  )}
+                </div>
+              </div>
+            ) : activeVisualization === 'participation' ? (
+              <p className="text-center text-muted-foreground">No data available to visualize</p>
+            ) : null}
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {/* Download Reports */}
       {selectedTournament && (

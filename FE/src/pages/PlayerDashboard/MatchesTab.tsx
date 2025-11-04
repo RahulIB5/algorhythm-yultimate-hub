@@ -3,6 +3,21 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { playerStatsAPI, type PlayerMatchStatItem } from "@/services/api";
+import {
+  Radar,
+  RadarChart,
+  PolarGrid,
+  PolarAngleAxis,
+  PolarRadiusAxis,
+  ResponsiveContainer,
+  Tooltip as ReTooltip,
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  Tooltip,
+  Cell,
+} from "recharts";
 
 const MatchesTab = ({ playerId }: { playerId: string | null }) => {
   const [loading, setLoading] = useState(true);
@@ -86,6 +101,69 @@ const MatchesTab = ({ playerId }: { playerId: string | null }) => {
                         <div><div className="text-2xl font-bold">{self.blocks ?? 0}</div><div className="text-xs text-muted-foreground">Blocks</div></div>
                       </div>
                       {self.remark && <p className="text-sm text-muted-foreground">Remark: {self.remark}</p>}
+
+                      {/* Performance Radar */}
+                      <h3 className="text-sm font-medium mt-6 mb-2">Performance Radar</h3>
+                      {(() => {
+                        const radarData = [
+                          { stat: "Offense", value: (self.ratings as any)?.offense || 0 },
+                          { stat: "Defense", value: (self.ratings as any)?.defense || 0 },
+                          { stat: "Throws", value: (self.ratings as any)?.throws || 0 },
+                          { stat: "Cuts", value: (self.ratings as any)?.cuts || 0 },
+                          { stat: "Spirit", value: (self.ratings as any)?.spirit || 0 },
+                          { stat: "Overall", value: (self.ratings as any)?.overall || 0 },
+                        ];
+                        const allZero = radarData.every(d => (d.value || 0) === 0);
+                        return allZero ? (
+                          <div className="text-sm text-muted-foreground">No stats available for visualization.</div>
+                        ) : (
+                          <div className="h-64 rounded-lg bg-white/60 dark:bg-white/5 p-2">
+                            <ResponsiveContainer width="100%" height="100%">
+                              <RadarChart data={radarData} outerRadius="70%">
+                                <PolarGrid />
+                                <PolarAngleAxis dataKey="stat" tick={{ fontSize: 12 }} />
+                                <PolarRadiusAxis angle={30} domain={[0, 10]} />
+                                <ReTooltip />
+                                <Radar name="Ratings" dataKey="value" stroke="#f97316" fill="rgba(249,115,22,0.3)" fillOpacity={1} animationDuration={700} />
+                              </RadarChart>
+                            </ResponsiveContainer>
+                          </div>
+                        );
+                      })()}
+
+                      {/* Match Summary */}
+                      {/* <h3 className="text-sm font-medium mt-6 mb-2">Match Summary</h3>
+                      {(() => {
+                        const summaryData = [
+                          { label: "Points", value: (self as any)?.points || 0 },
+                          { label: "Assists", value: (self as any)?.assists || 0 },
+                          { label: "Blocks", value: (self as any)?.blocks || 0 },
+                        ];
+                        const allZero = summaryData.every(d => (d.value || 0) === 0);
+                        if (allZero) return <div className="text-sm text-muted-foreground">No stats available for visualization.</div>;
+                        return (
+                          <div className="h-48 rounded-lg bg-white/60 dark:bg-white/5 p-2">
+                            <ResponsiveContainer width="100%" height="100%">
+                              <BarChart data={summaryData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
+                                <defs>
+                                  <linearGradient id="barOrange" x1="0" y1="0" x2="0" y2="1">
+                                    <stop offset="0%" stopColor="#f97316" stopOpacity={0.9} />
+                                    <stop offset="100%" stopColor="#fb923c" stopOpacity={0.6} />
+                                  </linearGradient>
+                                </defs>
+                                <XAxis dataKey="label" tick={{ fontSize: 12 }} />
+                                <YAxis allowDecimals={false} />
+                                <Tooltip />
+                                <Bar dataKey="value" radius={[6,6,0,0]}>
+                                  {summaryData.map((entry, index) => (
+                                    <Cell key={`cell-${index}`} fill={`url(#barOrange)`} />
+                                  ))}
+                                </Bar>
+                              </BarChart>
+                            </ResponsiveContainer>
+                          </div>
+                        );
+                      })()} */}
                     </div>
                   ) : (
                     <p className="text-sm text-muted-foreground">No stats recorded for you in this match yet.</p>

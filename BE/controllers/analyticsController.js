@@ -396,8 +396,8 @@ export const getPlayerParticipationData = async (req, res) => {
       median: 0
     };
 
-    // Participation counts
-    const participationStats = {
+    // Participation counts (base from player profiles)
+    let participationStats = {
       totalPlayers,
       playersWithMatches: playerProfiles.filter(p => (p.totalMatchesPlayed || 0) > 0).length,
       totalMatchesPlayed: playerProfiles.reduce((sum, p) => sum + (p.totalMatchesPlayed || 0), 0),
@@ -409,6 +409,7 @@ export const getPlayerParticipationData = async (req, res) => {
 
     // Get match attendance data if tournament is specified
     let attendanceStats = null;
+    let derivedPlayerProfiles = null;
     if (tournamentId && teamIds.length > 0) {
       const matches = await Match.find({
         tournamentId,
@@ -432,6 +433,56 @@ export const getPlayerParticipationData = async (req, res) => {
           ? Math.round((attendanceRecords.filter(a => a.status === 'present').length / attendanceRecords.length) * 100 * 100) / 100
           : 0
       };
+
+      // If profiles are sparse or not linked, derive participation from attendance
+      if (attendanceRecords.length > 0) {
+        const perPlayerPresentCounts = attendanceRecords.reduce((acc, rec) => {
+          const key = rec.playerId?.toString();
+          if (!key) return acc;
+          if (!acc[key]) acc[key] = { total: 0, present: 0 };
+          acc[key].total += 1;
+          if (rec.status === 'present') acc[key].present += 1;
+          return acc;
+        }, {});
+
+        const attendanceTotalPlayers = Object.keys(perPlayerPresentCounts).length;
+        const attendancePlayersWithMatches = Object.values(perPlayerPresentCounts).filter((v) => v.present > 0).length;
+        const attendanceTotalMatchesPlayed = Object.values(perPlayerPresentCounts).reduce((sum, v) => sum + v.present, 0);
+        const attendanceAvgMatches = attendanceTotalPlayers > 0
+          ? Math.round((attendanceTotalMatchesPlayed / attendanceTotalPlayers) * 100) / 100
+          : 0;
+
+        // Prefer attendance-derived stats when available for a specific tournament
+        participationStats = {
+          totalPlayers: attendanceTotalPlayers,
+          playersWithMatches: attendancePlayersWithMatches,
+          totalMatchesPlayed: attendanceTotalMatchesPlayed,
+          averageMatchesPerPlayer: attendanceAvgMatches,
+          playersInTournaments: attendanceTotalPlayers
+        };
+
+        // Build derived playerProfiles from attendance (fetch names)
+        const personIds = Object.keys(perPlayerPresentCounts);
+        const persons = await Person.find({ _id: { $in: personIds } }).select('firstName lastName');
+        const personMap = persons.reduce((acc, p) => {
+          acc[p._id.toString()] = p;
+          return acc;
+        }, {});
+
+        derivedPlayerProfiles = personIds.map(pid => {
+          const person = personMap[pid];
+          const counts = perPlayerPresentCounts[pid];
+          return {
+            _id: pid,
+            name: person ? `${person.firstName || ''} ${person.lastName || ''}`.trim() || 'Unknown' : 'Unknown',
+            age: null,
+            gender: null,
+            team: null,
+            totalMatchesPlayed: counts.present,
+            tournamentsPlayed: 1,
+          };
+        });
+      }
     }
 
     return res.status(200).json({
@@ -442,16 +493,18 @@ export const getPlayerParticipationData = async (req, res) => {
         participationStats,
         attendanceStats,
         playersByTeam,
-        totalPlayers,
-        playerProfiles: playerProfiles.map(p => ({
-          _id: p._id,
-          name: p.personId ? `${p.personId.firstName} ${p.personId.lastName}` : 'Unknown',
-          age: p.age || null,
-          gender: p.gender || null,
-          team: p.teamId?.teamName || null,
-          totalMatchesPlayed: p.totalMatchesPlayed || 0,
-          tournamentsPlayed: p.tournamentsPlayed || 0
-        }))
+        totalPlayers: participationStats.totalPlayers,
+        playerProfiles: (derivedPlayerProfiles && derivedPlayerProfiles.length > 0)
+          ? derivedPlayerProfiles
+          : playerProfiles.map(p => ({
+              _id: p._id,
+              name: p.personId ? `${p.personId.firstName} ${p.personId.lastName}` : 'Unknown',
+              age: p.age || null,
+              gender: p.gender || null,
+              team: p.teamId?.teamName || null,
+              totalMatchesPlayed: p.totalMatchesPlayed || 0,
+              tournamentsPlayed: p.tournamentsPlayed || 0
+            }))
       }
     });
   } catch (error) {
