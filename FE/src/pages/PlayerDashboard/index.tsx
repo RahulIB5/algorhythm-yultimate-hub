@@ -15,7 +15,7 @@ import TransferSection from "./TransferSection";
 import MatchesSection from "./MatchesSection";
 import StatsCards from "./StatsCards";
 import FeedbackSection from "./FeedbackSection";
-import PlayerAIChat from "@/components/PlayerAIChat";
+import PlayerFloatingChat from "./PlayerFloatingChat";
 import { playerStatsAPI } from "@/services/api";
 
 const PlayerDashboard = () => {
@@ -179,8 +179,8 @@ const PlayerDashboard = () => {
       </div>
 <BottomNav />
 
-{/* AI Performance Coach */}
-<PlayerAIChat
+{/* AI Performance Coach (Floating) */}
+<PlayerFloatingChat
   playerStats={playerStats}
   recentMatches={[]}
   performanceGoals={[

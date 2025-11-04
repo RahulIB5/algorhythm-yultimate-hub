@@ -152,18 +152,29 @@ export const getPlayerMatches = async (req, res) => {
   try {
     const { id } = req.params;
 
+    // 1) Try to get teams by PlayerProfile.teamId (if present)
     const profile = await PlayerProfile.findOne({ personId: id }).populate("teamId");
 
-    if (!profile || !profile.teamId) {
+    // 2) Also collect teams where this player appears in Team.players[].playerId
+    const teamsContainingPlayer = await Team.find({ "players.playerId": id }).select("_id teamName");
+
+    const teamIds = [];
+    if (profile?.teamId?._id) teamIds.push(profile.teamId._id);
+    for (const t of teamsContainingPlayer) teamIds.push(t._id);
+
+    if (teamIds.length === 0) {
       return res.status(200).json({ upcoming: [], past: [] });
     }
 
-    // Get matches where player's team is involved
+    // Deduplicate teamIds
+    const uniqueTeamIds = [...new Set(teamIds.map((x) => x.toString()))].map((x) => new mongoose.Types.ObjectId(x));
+
+    // 3) Fetch matches where any of these teams participate
     const teamMatches = await Match.find({
-      $or: [{ teamAId: profile.teamId._id }, { teamBId: profile.teamId._id }],
+      $or: uniqueTeamIds.flatMap((tid) => [{ teamAId: tid }, { teamBId: tid }]),
     })
-      .populate("teamAId", "name")
-      .populate("teamBId", "name")
+      .populate("teamAId", "teamName")
+      .populate("teamBId", "teamName")
       .populate("tournamentId", "name")
       .sort({ startTime: 1 });
 
@@ -172,10 +183,16 @@ export const getPlayerMatches = async (req, res) => {
       .filter((m) => new Date(m.startTime) >= now)
       .map((m) => ({
         _id: m._id,
-        opponent:
-          m.teamAId._id.toString() === profile.teamId._id.toString()
-            ? m.teamBId?.name || "TBD"
-            : m.teamAId?.name || "TBD",
+        opponent: (() => {
+          const teamAName = m.teamAId?.teamName || "TBD";
+          const teamBName = m.teamBId?.teamName || "TBD";
+          // If profile has a team, use that to derive opponent; otherwise just show the other side
+          if (profile?.teamId?._id) {
+            return m.teamAId?._id?.toString() === profile.teamId._id.toString() ? teamBName : teamAName;
+          }
+          // If multiple teams include the player, just show "Team A vs Team B" style opponent label
+          return `${teamAName} vs ${teamBName}`;
+        })(),
         date: m.startTime,
         venue: m.fieldName || "TBD",
         type: m.tournamentId ? m.tournamentId.name : "Friendly",
@@ -186,10 +203,14 @@ export const getPlayerMatches = async (req, res) => {
       .filter((m) => new Date(m.startTime) < now)
       .map((m) => ({
         _id: m._id,
-        opponent:
-          m.teamAId._id.toString() === profile.teamId._id.toString()
-            ? m.teamBId?.name || "TBD"
-            : m.teamAId?.name || "TBD",
+        opponent: (() => {
+          const teamAName = m.teamAId?.teamName || "TBD";
+          const teamBName = m.teamBId?.teamName || "TBD";
+          if (profile?.teamId?._id) {
+            return m.teamAId?._id?.toString() === profile.teamId._id.toString() ? teamBName : teamAName;
+          }
+          return `${teamAName} vs ${teamBName}`;
+        })(),
         date: m.startTime,
         venue: m.fieldName || "TBD",
         type: m.tournamentId ? m.tournamentId.name : "Friendly",

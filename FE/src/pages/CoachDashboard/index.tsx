@@ -98,7 +98,7 @@ const CoachDashboard = () => {
                 <div className="lg:col-span-2">
                   <OverviewTab />
                 </div>
-                <UpcomingSessionsTab />
+                <UpcomingSessionsTab onViewSessions={() => setActiveTab("sessions")} /> {/* 👈 Add this */}
                 <QuickActionsTab />
               </>
             )}

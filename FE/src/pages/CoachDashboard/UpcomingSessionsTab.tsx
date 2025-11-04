@@ -17,7 +17,11 @@ interface Session {
   status: "scheduled" | "completed";
 }
 
-const UpcomingSessionsTab = () => {
+interface UpcomingSessionsTabProps {
+  onViewSessions: () => void;
+}
+
+const UpcomingSessionsTab = ({ onViewSessions }: UpcomingSessionsTabProps) => {
   const [sessions, setSessions] = useState<Session[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -98,6 +102,7 @@ const UpcomingSessionsTab = () => {
             <div
               key={session._id}
               className="p-4 rounded-lg bg-gradient-to-r from-orange-500/5 to-orange-600/5 hover:from-orange-500/10 hover:to-orange-600/10 transition-all border border-orange-500/10"
+              onClick={() => onViewSessions?.()}
             >
               <div className="flex items-start justify-between">
                 <div className="flex-1">

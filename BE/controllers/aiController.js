@@ -39,10 +39,10 @@ async function callGeminiGenerateContent(promptParts) {
             },
           ],
           generationConfig: {
-            temperature: 0.6,
+            temperature: 0.4,
             topK: 40,
-            topP: 0.95,
-            maxOutputTokens: 1024,
+            topP: 0.9,
+            maxOutputTokens: 1400,
           },
         }),
       });
@@ -104,7 +104,8 @@ Output style (guidelines, not strict rules):
 - Provide 1–2 specific drills with reps/time and coaching cues when appropriate
 - Include measurable outcomes or success criteria where possible
 - If details are missing (age, duration, focus), infer reasonable defaults and proceed
-- Only ask a brief clarifying question if an assumption would change the plan meaningfully`;
+- Only ask a brief clarifying question if an assumption would change the plan meaningfully
+- Do not repeat yourself, avoid restating the user's question, and avoid boilerplate prefaces.`;
 
     const ctxLines = [];
     if (context?.teamName) ctxLines.push(`Team: ${context.teamName}`);
@@ -118,7 +119,7 @@ Output style (guidelines, not strict rules):
       roleHint,
       ctxLines.length ? `Context:\n${ctxLines.join("\n")}` : "",
       `Coach question: ${question}`,
-      `Guidance: Respond in ${language}. Aim for concise bullet points. Prioritize session improvement and drill specificity. If context is missing, infer sensible defaults (e.g., mixed youth, 60 minutes, fundamentals) and continue.`,
+      `Guidance: Respond in ${language}. Aim for concise bullet points. Prioritize session improvement and drill specificity. If context is missing, infer sensible defaults (e.g., mixed youth, 60 minutes, fundamentals) and continue. Avoid repetition.`,
     ].filter(Boolean);
 
     let answer = await callGeminiGenerateContent(promptParts);
@@ -174,7 +175,8 @@ Output style guidelines:
 - Focus on progressive skill development
 - Include measurable goals and self-assessment techniques
 - Suggest both solo and team-based improvement activities
-- Address common mistakes and how to fix them`;
+- Address common mistakes and how to fix them
+- Do not repeat yourself, avoid restating the user's question, and avoid generic boilerplate.`;
 
     const ctxLines = [];
     if (context?.playerStats) ctxLines.push(`Recent stats: ${JSON.stringify(context.playerStats)}`);
@@ -188,7 +190,7 @@ Output style guidelines:
       roleHint,
       ctxLines.length ? `Player Context:\n${ctxLines.join("\n")}` : "",
       `Player question: ${question}`,
-      `Guidance: Respond in ${language}. Focus on actionable individual improvement. Provide specific drills, exercises, and mental strategies. Include self-assessment methods and measurable progress indicators.`,
+      `Guidance: Respond in ${language}. Focus on actionable individual improvement. Provide specific drills, exercises, and mental strategies. Include self-assessment methods and measurable progress indicators. Avoid repetition.`,
     ].filter(Boolean);
 
     let answer = await callGeminiGenerateContent(promptParts);
