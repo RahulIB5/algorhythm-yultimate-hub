@@ -1,6 +1,7 @@
 import PlayerMatchStats from "../models/playerMatchStatsModel.js";
 import Match from "../models/matchModel.js";
 import Team from "../models/teamModel.js";
+import { createNotificationsForUsers } from "./notificationController.js";
 
 // Volunteer: submit stats for players of a completed match
 export const submitMatchPlayerStats = async (req, res) => {
@@ -51,6 +52,22 @@ export const submitMatchPlayerStats = async (req, res) => {
 
     await PlayerMatchStats.bulkWrite(bulk);
 
+    // Notify all players about stats submission
+    try {
+      const playerIds = [...new Set(stats.map(s => s.playerId).filter(id => id))];
+      if (playerIds.length > 0) {
+        await createNotificationsForUsers(
+          playerIds,
+          "player_stats_submitted",
+          "Match Stats Posted",
+          `Your match statistics have been posted for the completed match.`,
+          { relatedEntityId: matchId, relatedEntityType: "match" }
+        );
+      }
+    } catch (notificationError) {
+      console.error("Error creating notifications for player stats:", notificationError);
+    }
+
     return res.status(200).json({ success: true, message: "Player stats submitted" });
   } catch (error) {
     console.error("Submit player stats error:", error);
@@ -98,6 +115,23 @@ export const submitTeamMatchPlayerStats = async (req, res) => {
     }));
 
     await PlayerMatchStats.bulkWrite(bulk);
+
+    // Notify all players about stats submission
+    try {
+      const playerIds = [...new Set(stats.map(s => s.playerId).filter(id => id))];
+      if (playerIds.length > 0) {
+        await createNotificationsForUsers(
+          playerIds,
+          "player_stats_submitted",
+          "Match Stats Posted",
+          `Your match statistics have been posted for the completed match.`,
+          { relatedEntityId: matchId, relatedEntityType: "match" }
+        );
+      }
+    } catch (notificationError) {
+      console.error("Error creating notifications for player stats:", notificationError);
+    }
+
     return res.status(200).json({ success: true, message: "Team player stats submitted" });
   } catch (error) {
     console.error("Submit team player stats error:", error);

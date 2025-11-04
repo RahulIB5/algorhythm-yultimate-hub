@@ -6,6 +6,12 @@ import SpiritSubmission from "../models/spiritSubmissionModel.js";
 import MatchAttendance from "../models/matchAttendanceModel.js";
 import MatchScoreEvent from "../models/matchScoreEventModel.js";
 import Person from "../models/personModel.js";
+import Session from "../models/sessionModel.js";
+import Attendance from "../models/attendanceModel.js";
+import RoleRequest from "../models/roleRequestModel.js";
+import VolunteerTournamentAssignment from "../models/volunteerTournamentAssignmentModel.js";
+import PlayerMatchFeedback from "../models/playerMatchFeedbackModel.js";
+import MatchImage from "../models/matchImageModel.js";
 
 /**
  * Tournament Summary Dashboard
@@ -649,6 +655,666 @@ export const downloadTournamentReport = async (req, res) => {
     res.status(500).json({
       success: false,
       message: "Server error while generating report",
+      error: error.message
+    });
+  }
+};
+
+/**
+ * Admin Overview Dashboard
+ * Returns comprehensive statistics for admin dashboard
+ */
+export const getAdminOverview = async (req, res) => {
+  try {
+    // Get total players
+    const totalPlayers = await PlayerProfile.countDocuments();
+
+    // Get active tournaments (in progress)
+    const now = new Date();
+    const activeTournaments = await Tournament.countDocuments({
+      startDate: { $lte: now },
+      endDate: { $gte: now },
+      status: { $in: ['upcoming', 'live'] }
+    });
+
+    // Get total registered teams across all tournaments
+    const allTournaments = await Tournament.find().select('registeredTeams');
+    const totalRegisteredTeams = allTournaments.reduce((sum, t) => {
+      return sum + (t.registeredTeams?.length || 0);
+    }, 0);
+
+    // Calculate average spirit score
+    const spiritSubmissions = await SpiritSubmission.find();
+    let totalSpiritScore = 0;
+    let spiritScoreCount = 0;
+    
+    spiritSubmissions.forEach(submission => {
+      if (submission.categories) {
+        const categories = submission.categories;
+        const matchTotal = (categories.rulesKnowledge || 0) +
+                          (categories.foulsContact || 0) +
+                          (categories.fairMindedness || 0) +
+                          (categories.positiveAttitude || 0) +
+                          (categories.communication || 0);
+        totalSpiritScore += matchTotal;
+        spiritScoreCount++;
+      }
+    });
+    
+    const avgSpiritScore = spiritScoreCount > 0 
+      ? Math.round((totalSpiritScore / spiritScoreCount) * 100) / 100 
+      : 0;
+
+    // Get sessions this month
+    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+    const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
+    const sessionsThisMonth = await Session.countDocuments({
+      scheduledStart: { $gte: startOfMonth, $lte: endOfMonth }
+    });
+
+    // Calculate attendance rate (from both Attendance and MatchAttendance)
+    const sessionAttendanceRecords = await Attendance.find();
+    const matchAttendanceRecords = await MatchAttendance.find();
+    
+    const totalAttendanceRecords = sessionAttendanceRecords.length + matchAttendanceRecords.length;
+    const presentCount = sessionAttendanceRecords.filter(a => a.status === 'present').length +
+                        matchAttendanceRecords.filter(a => a.status === 'present').length;
+    
+    const attendanceRate = totalAttendanceRecords > 0
+      ? Math.round((presentCount / totalAttendanceRecords) * 100)
+      : 0;
+
+    // Get pending account requests
+    const accountRequestsCount = await RoleRequest.countDocuments({ status: 'pending' });
+
+    // Get volunteer applications (assignments with status 'assigned')
+    const volunteerApplicationsCount = await VolunteerTournamentAssignment.countDocuments({
+      status: 'assigned'
+    });
+
+    // Get tournaments needing approval (status 'upcoming' that haven't started)
+    const tournamentsNeedingApproval = await Tournament.countDocuments({
+      status: 'upcoming',
+      startDate: { $gte: now }
+    });
+
+    // Get active users
+    const activeUsersCount = await Person.countDocuments({ accountStatus: 'active' });
+
+    // Get sessions with enrolled players (booked sessions)
+    const sessionsWithPlayers = await Session.countDocuments({
+      enrolledPlayers: { $exists: true, $ne: [] }
+    });
+
+    // Get total sessions
+    const totalSessions = await Session.countDocuments();
+
+    // Calculate tournament capacity
+    const tournamentsWithCapacity = await Tournament.find().select('maxTeams registeredTeams');
+    let totalMaxTeams = 0;
+    let totalRegisteredTeamsCount = 0;
+    
+    tournamentsWithCapacity.forEach(t => {
+      totalMaxTeams += t.maxTeams || 0;
+      totalRegisteredTeamsCount += (t.registeredTeams?.length || 0);
+    });
+
+    // Calculate previous period stats for comparison (last month)
+    const previousMonthStart = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+    const previousMonthEnd = new Date(now.getFullYear(), now.getMonth(), 0, 23, 59, 59, 999);
+    const previousMonthSessions = await Session.countDocuments({
+      scheduledStart: { $gte: previousMonthStart, $lte: previousMonthEnd }
+    });
+
+    // Calculate percentage changes
+    const sessionsChange = previousMonthSessions > 0
+      ? `+${Math.round(((sessionsThisMonth - previousMonthSessions) / previousMonthSessions) * 100)}%`
+      : sessionsThisMonth > 0 ? "+100%" : "0%";
+
+    // Get previous month active tournaments for comparison
+    const previousMonthActiveTournaments = await Tournament.countDocuments({
+      startDate: { $gte: previousMonthStart, $lte: previousMonthEnd },
+      status: { $in: ['upcoming', 'live'] }
+    });
+
+    const tournamentsChange = previousMonthActiveTournaments > 0
+      ? `+${Math.round(((activeTournaments - previousMonthActiveTournaments) / previousMonthActiveTournaments) * 100)}%`
+      : activeTournaments > 0 ? "+100%" : "0";
+
+    // Get previous month teams for comparison
+    const previousMonthTournaments = await Tournament.find({
+      createdAt: { $gte: previousMonthStart, $lte: previousMonthEnd }
+    }).select('registeredTeams');
+    
+    const previousMonthTeams = previousMonthTournaments.reduce((sum, t) => {
+      return sum + (t.registeredTeams?.length || 0);
+    }, 0);
+
+    const teamsChange = previousMonthTeams > 0
+      ? `+${Math.round(((totalRegisteredTeams - previousMonthTeams) / previousMonthTeams) * 100)}%`
+      : totalRegisteredTeams > 0 ? "+100%" : "+0%";
+
+    // Get previous month spirit scores for comparison
+    const previousMonthSpiritSubmissions = await SpiritSubmission.find({
+      createdAt: { $gte: previousMonthStart, $lte: previousMonthEnd }
+    });
+    
+    let previousMonthTotalSpiritScore = 0;
+    let previousMonthSpiritScoreCount = 0;
+    
+    previousMonthSpiritSubmissions.forEach(submission => {
+      if (submission.categories) {
+        const categories = submission.categories;
+        const matchTotal = (categories.rulesKnowledge || 0) +
+                          (categories.foulsContact || 0) +
+                          (categories.fairMindedness || 0) +
+                          (categories.positiveAttitude || 0) +
+                          (categories.communication || 0);
+        previousMonthTotalSpiritScore += matchTotal;
+        previousMonthSpiritScoreCount++;
+      }
+    });
+    
+    const previousMonthAvgSpiritScore = previousMonthSpiritScoreCount > 0
+      ? previousMonthTotalSpiritScore / previousMonthSpiritScoreCount
+      : 0;
+
+    const spiritScoreChange = previousMonthAvgSpiritScore > 0
+      ? `+${Math.round((avgSpiritScore - previousMonthAvgSpiritScore) * 100) / 100}`
+      : avgSpiritScore > 0 ? `+${avgSpiritScore}` : "0";
+
+    // Get previous month attendance for comparison
+    const previousMonthSessionAttendance = await Attendance.find({
+      date: { $gte: previousMonthStart, $lte: previousMonthEnd }
+    });
+    const previousMonthMatchAttendance = await MatchAttendance.find({
+      createdAt: { $gte: previousMonthStart, $lte: previousMonthEnd }
+    });
+    
+    const previousMonthTotalRecords = previousMonthSessionAttendance.length + previousMonthMatchAttendance.length;
+    const previousMonthPresent = previousMonthSessionAttendance.filter(a => a.status === 'present').length +
+                                previousMonthMatchAttendance.filter(a => a.status === 'present').length;
+    
+    const previousMonthAttendanceRate = previousMonthTotalRecords > 0
+      ? Math.round((previousMonthPresent / previousMonthTotalRecords) * 100)
+      : 0;
+
+    const attendanceChange = previousMonthAttendanceRate > 0
+      ? `+${attendanceRate - previousMonthAttendanceRate}%`
+      : attendanceRate > 0 ? `+${attendanceRate}%` : "+0%";
+
+    // Get previous month players for comparison
+    const previousMonthPlayers = await PlayerProfile.countDocuments({
+      createdAt: { $gte: previousMonthStart, $lte: previousMonthEnd }
+    });
+
+    const playersChange = previousMonthPlayers > 0
+      ? `+${Math.round(((totalPlayers - previousMonthPlayers) / previousMonthPlayers) * 100)}%`
+      : totalPlayers > 0 ? "+100%" : "+0%";
+
+    res.status(200).json({
+      success: true,
+      data: {
+        stats: {
+          totalPlayers: {
+            value: totalPlayers.toLocaleString(),
+            change: playersChange
+          },
+          activeTournaments: {
+            value: activeTournaments.toString(),
+            change: tournamentsChange
+          },
+          teamsRegistered: {
+            value: totalRegisteredTeams.toString(),
+            change: teamsChange
+          },
+          avgSpiritScore: {
+            value: avgSpiritScore.toFixed(1),
+            change: spiritScoreChange
+          },
+          sessionsThisMonth: {
+            value: sessionsThisMonth.toString(),
+            change: sessionsChange
+          },
+          attendanceRate: {
+            value: `${attendanceRate}%`,
+            change: attendanceChange
+          }
+        },
+        pendingActions: {
+          accountRequests: accountRequestsCount,
+          volunteerApplications: volunteerApplicationsCount,
+          tournamentApprovals: tournamentsNeedingApproval
+        },
+        quickStats: {
+          activeUsers: activeUsersCount,
+          sessionsBooked: `${sessionsWithPlayers}/${totalSessions}`,
+          sessionsBookedPercentage: totalSessions > 0 
+            ? Math.round((sessionsWithPlayers / totalSessions) * 100)
+            : 0,
+          tournamentCapacity: `${totalRegisteredTeamsCount}/${totalMaxTeams}`,
+          tournamentCapacityPercentage: totalMaxTeams > 0
+            ? Math.round((totalRegisteredTeamsCount / totalMaxTeams) * 100)
+            : 0
+        }
+      }
+    });
+  } catch (error) {
+    console.error("Get admin overview error:", error);
+    res.status(500).json({
+      success: false,
+      message: "Server error while fetching admin overview",
+      error: error.message
+    });
+  }
+};
+
+/**
+ * Coach Overview Dashboard
+ * Returns coach-specific statistics for coach dashboard
+ */
+export const getCoachOverview = async (req, res) => {
+  try {
+    const coachId = req.user?.id;
+    if (!coachId) {
+      return res.status(401).json({
+        success: false,
+        message: "Coach ID is required"
+      });
+    }
+
+    const now = new Date();
+
+    // Get active students (players assigned to this coach)
+    const activeStudents = await PlayerProfile.countDocuments({
+      assignedCoachId: coachId
+    });
+
+    // Get sessions this week (sessions assigned to this coach)
+    const startOfWeek = new Date(now);
+    startOfWeek.setDate(now.getDate() - now.getDay()); // Start of week (Sunday)
+    startOfWeek.setHours(0, 0, 0, 0);
+    
+    const endOfWeek = new Date(startOfWeek);
+    endOfWeek.setDate(startOfWeek.getDate() + 6); // End of week (Saturday)
+    endOfWeek.setHours(23, 59, 59, 999);
+
+    const sessionsThisWeek = await Session.countDocuments({
+      assignedCoaches: coachId,
+      scheduledStart: { $gte: startOfWeek, $lte: endOfWeek }
+    });
+
+    // Get upcoming sessions count
+    const upcomingSessionsCount = await Session.countDocuments({
+      assignedCoaches: coachId,
+      status: "scheduled",
+      scheduledStart: { $gte: now }
+    });
+
+    // Calculate attendance rate for coach's students
+    // Get all player profiles assigned to this coach
+    const playerProfiles = await PlayerProfile.find({ assignedCoachId: coachId }).select('personId');
+    const playerIds = playerProfiles.map(p => p.personId);
+
+    // Get attendance records for these players
+    const sessionAttendanceRecords = await Attendance.find({
+      personId: { $in: playerIds }
+    });
+
+    const matchAttendanceRecords = await MatchAttendance.find({
+      playerId: { $in: playerIds }
+    });
+
+    const totalAttendanceRecords = sessionAttendanceRecords.length + matchAttendanceRecords.length;
+    const presentCount = sessionAttendanceRecords.filter(a => a.status === 'present').length +
+                        matchAttendanceRecords.filter(a => a.status === 'present').length;
+
+    const attendanceRate = totalAttendanceRecords > 0
+      ? Math.round((presentCount / totalAttendanceRecords) * 100)
+      : 0;
+
+    // Calculate average progress score (from player feedback/ratings)
+    const playerFeedback = await PlayerMatchFeedback.find({
+      coachId: coachId
+    }).select('score');
+
+    let totalProgressScore = 0;
+    let progressScoreCount = 0;
+
+    playerFeedback.forEach(feedback => {
+      if (feedback.score) {
+        // Score is in format "X/Y" (e.g., "3/7")
+        const [numerator, denominator] = feedback.score.split('/').map(Number);
+        if (denominator && denominator > 0) {
+          // Convert to 0-10 scale for consistency
+          const normalizedScore = (numerator / denominator) * 10;
+          totalProgressScore += normalizedScore;
+          progressScoreCount++;
+        }
+      }
+    });
+
+    // Also check player profile feedback for legacy data
+    const playerProfilesWithFeedback = await PlayerProfile.find({
+      assignedCoachId: coachId,
+      'feedback.coachId': coachId
+    }).select('feedback');
+
+    playerProfilesWithFeedback.forEach(profile => {
+      profile.feedback?.forEach(fb => {
+        if (fb.coachId?.toString() === coachId.toString() && fb.rating) {
+          totalProgressScore += fb.rating; // Already on 0-10 scale
+          progressScoreCount++;
+        }
+      });
+    });
+
+    const avgProgressScore = progressScoreCount > 0
+      ? Math.round((totalProgressScore / progressScoreCount) * 100) / 100
+      : 0;
+
+    // Calculate previous period stats for comparison (last week)
+    const previousWeekStart = new Date(startOfWeek);
+    previousWeekStart.setDate(startOfWeek.getDate() - 7);
+    
+    const previousWeekEnd = new Date(endOfWeek);
+    previousWeekEnd.setDate(endOfWeek.getDate() - 7);
+
+    const previousWeekSessions = await Session.countDocuments({
+      assignedCoaches: coachId,
+      scheduledStart: { $gte: previousWeekStart, $lte: previousWeekEnd }
+    });
+
+    // Get previous week active students (new students added)
+    const previousWeekStudents = await PlayerProfile.countDocuments({
+      assignedCoachId: coachId,
+      createdAt: { $gte: previousWeekStart, $lte: previousWeekEnd }
+    });
+
+    // Calculate changes
+    const studentsChange = previousWeekStudents > 0
+      ? `+${activeStudents - previousWeekStudents}`
+      : activeStudents > 0 ? `+${activeStudents}` : "0";
+
+    const sessionsChange = previousWeekSessions > 0
+      ? `${upcomingSessionsCount} upcoming`
+      : sessionsThisWeek > 0 ? `${sessionsThisWeek} scheduled` : "0 upcoming";
+
+    // Get previous week attendance
+    const previousWeekSessionAttendance = await Attendance.find({
+      personId: { $in: playerIds },
+      date: { $gte: previousWeekStart, $lte: previousWeekEnd }
+    });
+    const previousWeekMatchAttendance = await MatchAttendance.find({
+      playerId: { $in: playerIds },
+      createdAt: { $gte: previousWeekStart, $lte: previousWeekEnd }
+    });
+
+    const previousWeekTotalRecords = previousWeekSessionAttendance.length + previousWeekMatchAttendance.length;
+    const previousWeekPresent = previousWeekSessionAttendance.filter(a => a.status === 'present').length +
+                               previousWeekMatchAttendance.filter(a => a.status === 'present').length;
+
+    const previousWeekAttendanceRate = previousWeekTotalRecords > 0
+      ? Math.round((previousWeekPresent / previousWeekTotalRecords) * 100)
+      : 0;
+
+    const attendanceChange = previousWeekAttendanceRate > 0
+      ? `${attendanceRate - previousWeekAttendanceRate >= 0 ? '+' : ''}${attendanceRate - previousWeekAttendanceRate}%`
+      : attendanceRate > 0 ? `+${attendanceRate}%` : "0%";
+
+    // Get previous week progress scores
+    const previousWeekFeedback = await PlayerMatchFeedback.find({
+      coachId: coachId,
+      submittedAt: { $gte: previousWeekStart, $lte: previousWeekEnd }
+    }).select('score');
+
+    let previousWeekTotalProgressScore = 0;
+    let previousWeekProgressScoreCount = 0;
+
+    previousWeekFeedback.forEach(feedback => {
+      if (feedback.score) {
+        const [numerator, denominator] = feedback.score.split('/').map(Number);
+        if (denominator && denominator > 0) {
+          const normalizedScore = (numerator / denominator) * 10;
+          previousWeekTotalProgressScore += normalizedScore;
+          previousWeekProgressScoreCount++;
+        }
+      }
+    });
+
+    const previousWeekAvgProgressScore = previousWeekProgressScoreCount > 0
+      ? previousWeekTotalProgressScore / previousWeekProgressScoreCount
+      : 0;
+
+    const progressScoreChange = previousWeekAvgProgressScore > 0
+      ? `${avgProgressScore - previousWeekAvgProgressScore >= 0 ? '+' : ''}${Math.round((avgProgressScore - previousWeekAvgProgressScore) * 100) / 100}`
+      : avgProgressScore > 0 ? `+${avgProgressScore}` : "0";
+
+    res.status(200).json({
+      success: true,
+      data: {
+        stats: {
+          activeStudents: {
+            value: activeStudents.toString(),
+            change: studentsChange
+          },
+          sessionsThisWeek: {
+            value: sessionsThisWeek.toString(),
+            change: sessionsChange
+          },
+          attendanceRate: {
+            value: `${attendanceRate}%`,
+            change: attendanceChange
+          },
+          avgProgressScore: {
+            value: avgProgressScore.toFixed(1),
+            change: progressScoreChange
+          }
+        }
+      }
+    });
+  } catch (error) {
+    console.error("Get coach overview error:", error);
+    res.status(500).json({
+      success: false,
+      message: "Server error while fetching coach overview",
+      error: error.message
+    });
+  }
+};
+
+/**
+ * Volunteer Overview Dashboard
+ * Returns volunteer-specific statistics for volunteer dashboard
+ */
+export const getVolunteerOverview = async (req, res) => {
+  try {
+    const volunteerId = req.user?.id;
+    if (!volunteerId) {
+      return res.status(401).json({
+        success: false,
+        message: "Volunteer ID is required"
+      });
+    }
+
+    const now = new Date();
+
+    // Get upcoming events (tournaments assigned to volunteer that haven't started)
+    const assignments = await VolunteerTournamentAssignment.find({
+      volunteerId: volunteerId,
+      status: { $in: ['assigned', 'confirmed'] }
+    }).populate('tournamentId', 'name startDate endDate location');
+
+    const upcomingEvents = assignments.filter(assignment => {
+      if (!assignment.tournamentId) return false;
+      const tournament = assignment.tournamentId;
+      const startDate = new Date(tournament.startDate);
+      return startDate >= now;
+    });
+
+    // Get events this month
+    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+    const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
+    
+    const eventsThisMonth = assignments.filter(assignment => {
+      if (!assignment.tournamentId) return false;
+      const tournament = assignment.tournamentId;
+      const startDate = new Date(tournament.startDate);
+      return startDate >= startOfMonth && startDate <= endOfMonth;
+    }).length;
+
+    // Calculate hours contributed
+    // Get all tournaments assigned to volunteer
+    const allAssignments = await VolunteerTournamentAssignment.find({
+      volunteerId: volunteerId
+    }).populate('tournamentId', 'startDate endDate');
+
+    const tournamentIds = allAssignments
+      .filter(a => a.tournamentId)
+      .map(a => a.tournamentId._id);
+
+    // Get matches from tournaments volunteer is assigned to
+    const tournamentMatches = await Match.find({
+      tournamentId: { $in: tournamentIds }
+    }).distinct('_id');
+
+    // Get matches where volunteer was directly involved (attendance, images)
+    const matchesWithImages = await MatchImage.find({
+      uploadedBy: volunteerId
+    }).distinct('matchId');
+
+    const matchesWithAttendance = await MatchAttendance.find({
+      recordedBy: volunteerId
+    }).distinct('matchId');
+
+    // Combine all unique matches (tournament matches + direct involvement)
+    const allMatchIds = [...new Set([
+      ...tournamentMatches.map(id => id.toString()),
+      ...matchesWithImages.map(id => id.toString()),
+      ...matchesWithAttendance.map(id => id.toString())
+    ])];
+
+    // Estimate hours: assume average 2 hours per match
+    const estimatedHours = Math.round(allMatchIds.length * 2);
+
+    // Get hours from completed assignments (estimate based on tournament duration)
+    const completedAssignments = await VolunteerTournamentAssignment.find({
+      volunteerId: volunteerId,
+      status: 'completed'
+    }).populate('tournamentId', 'startDate endDate');
+
+    let totalHoursFromAssignments = 0;
+    completedAssignments.forEach(assignment => {
+      if (assignment.tournamentId) {
+        const startDate = new Date(assignment.tournamentId.startDate);
+        const endDate = new Date(assignment.tournamentId.endDate);
+        const daysDiff = Math.ceil((endDate - startDate) / (1000 * 60 * 60 * 24));
+        // Estimate 4 hours per day for tournament
+        totalHoursFromAssignments += daysDiff * 4;
+      }
+    });
+
+    const totalHours = estimatedHours + totalHoursFromAssignments;
+
+    // Get hours this week
+    const startOfWeek = new Date(now);
+    startOfWeek.setDate(now.getDate() - now.getDay());
+    startOfWeek.setHours(0, 0, 0, 0);
+    
+    const endOfWeek = new Date(startOfWeek);
+    endOfWeek.setDate(startOfWeek.getDate() + 6);
+    endOfWeek.setHours(23, 59, 59, 999);
+
+    const matchesThisWeek = await Match.find({
+      _id: { $in: allMatchIds },
+      startTime: { $gte: startOfWeek, $lte: endOfWeek }
+    });
+
+    const hoursThisWeek = matchesThisWeek.length * 2;
+
+    // Get students impacted (unique players from matches)
+    const matchAttendanceRecords = await MatchAttendance.find({
+      matchId: { $in: allMatchIds }
+    }).distinct('playerId');
+
+    const studentsImpacted = matchAttendanceRecords.length;
+
+    // Get events supported (total tournaments assigned to)
+    const eventsSupported = await VolunteerTournamentAssignment.countDocuments({
+      volunteerId: volunteerId
+    });
+
+    // Get events this year
+    const startOfYear = new Date(now.getFullYear(), 0, 1);
+    const eventsThisYear = await VolunteerTournamentAssignment.countDocuments({
+      volunteerId: volunteerId,
+      createdAt: { $gte: startOfYear }
+    });
+
+    // Calculate previous period stats for comparison
+    const previousWeekStart = new Date(startOfWeek);
+    previousWeekStart.setDate(startOfWeek.getDate() - 7);
+    const previousWeekEnd = new Date(endOfWeek);
+    previousWeekEnd.setDate(endOfWeek.getDate() - 7);
+
+    const previousWeekMatches = await Match.find({
+      _id: { $in: allMatchIds },
+      startTime: { $gte: previousWeekStart, $lte: previousWeekEnd }
+    });
+
+    const previousWeekHours = previousWeekMatches.length * 2;
+
+    // Calculate changes
+    const upcomingEventsChange = eventsThisMonth > 0
+      ? "This month"
+      : upcomingEvents.length > 0
+        ? `${upcomingEvents.length} upcoming`
+        : "No upcoming";
+
+    const hoursChange = previousWeekHours > 0
+      ? `+${hoursThisWeek - previousWeekHours} this week`
+      : hoursThisWeek > 0
+        ? `+${hoursThisWeek} this week`
+        : "0 this week";
+
+    const studentsChange = studentsImpacted > 0
+      ? "Across programs"
+      : "No students yet";
+
+    const eventsChange = eventsThisYear > 0
+      ? "This year"
+      : eventsSupported > 0
+        ? `${eventsSupported} total`
+        : "No events";
+
+    res.status(200).json({
+      success: true,
+      data: {
+        stats: {
+          upcomingEvents: {
+            value: upcomingEvents.length.toString(),
+            change: upcomingEventsChange
+          },
+          hoursContributed: {
+            value: totalHours.toString(),
+            change: hoursChange
+          },
+          studentsImpacted: {
+            value: studentsImpacted.toString(),
+            change: studentsChange
+          },
+          eventsSupported: {
+            value: eventsSupported.toString(),
+            change: eventsChange
+          }
+        }
+      }
+    });
+  } catch (error) {
+    console.error("Get volunteer overview error:", error);
+    res.status(500).json({
+      success: false,
+      message: "Server error while fetching volunteer overview",
       error: error.message
     });
   }

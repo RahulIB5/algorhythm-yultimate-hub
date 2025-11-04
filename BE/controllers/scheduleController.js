@@ -1,6 +1,8 @@
 import Team from "../models/teamModel.js";
 import Tournament from "../models/tournamentModel.js";
 import Match from "../models/matchModel.js";
+import TeamRoster from "../models/teamRosterModel.js";
+import { createNotificationsForUsers } from "./notificationController.js";
 
 // Get teams registered for a tournament
 export const getTeamsByTournament = async (req, res) => {
@@ -301,6 +303,53 @@ export const generateSchedule = async (req, res) => {
         pool: match.pool
       }))
     );
+
+    // Notify all players from teams in the tournament about scheduled matches
+    try {
+      const allPlayerIds = new Set();
+      
+      // Get all players from all teams in the tournament
+      for (const team of teams) {
+        // Get players from TeamRoster
+        const rosterPlayers = await TeamRoster.find({ 
+          teamId: team._id,
+          status: 'active'
+        }).select('playerId');
+        
+        rosterPlayers.forEach(roster => {
+          if (roster.playerId) {
+            allPlayerIds.add(roster.playerId.toString());
+          }
+        });
+
+        // Also get players from team.players array (legacy)
+        if (team.players && Array.isArray(team.players)) {
+          team.players.forEach(player => {
+            if (player.playerId) {
+              allPlayerIds.add(player.playerId.toString());
+            }
+          });
+        }
+      }
+
+      // Notify all players
+      if (allPlayerIds.size > 0) {
+        const playerIdsArray = Array.from(allPlayerIds);
+        const matchCount = savedMatches.length;
+        const matchDate = new Date(savedMatches[0]?.startTime || Date.now()).toLocaleDateString();
+        
+        await createNotificationsForUsers(
+          playerIdsArray,
+          "match_scheduled",
+          "Matches Scheduled",
+          `${matchCount} match${matchCount > 1 ? 'es have' : ' has'} been scheduled for ${tournament.name}. First match starts ${matchDate}.`,
+          { relatedEntityId: tournament._id, relatedEntityType: "tournament" }
+        );
+      }
+    } catch (notificationError) {
+      console.error("Error creating notifications for match scheduling:", notificationError);
+      // Don't fail the request if notification fails
+    }
 
     res.status(201).json({
       success: true,

@@ -150,7 +150,87 @@ Output style (guidelines, not strict rules):
     return res.status(500).json({ success: false, message: err.message || "AI service failed" });
   }
 };
+// POST /api/ai/player-assistant
+// Body: { question: string, context?: { playerStats?: any, recentMatches?: any[], language?: string, performanceGoals?: string[], currentChallenges?: string[] } }
+export const playerAssistant = async (req, res) => {
+  try {
+    const { question, context } = req.body || {};
+    if (!question || typeof question !== "string") {
+      return res.status(400).json({ success: false, message: "'question' is required" });
+    }
 
-export default { coachAssistant };
+    const roleHint = `You are an elite ULTIMATE FRISBEE performance coach assistant specifically for PLAYERS.
+Focus on:
+- Individual skill improvement and technique
+- Match performance analysis and strategies
+- Training exercises and drills for personal development
+- Mental game and game awareness
+- Recovery and injury prevention
+- Equipment and physical preparation
+
+Output style guidelines:
+- Keep answers actionable and specific to the player's level
+- Provide concrete drills with rep counts and timing
+- Focus on progressive skill development
+- Include measurable goals and self-assessment techniques
+- Suggest both solo and team-based improvement activities
+- Address common mistakes and how to fix them`;
+
+    const ctxLines = [];
+    if (context?.playerStats) ctxLines.push(`Recent stats: ${JSON.stringify(context.playerStats)}`);
+    if (Array.isArray(context?.recentMatches) && context.recentMatches.length > 0) ctxLines.push(`Recent matches: ${JSON.stringify(context.recentMatches.slice(0, 5))}${context.recentMatches.length > 5 ? " (truncated)" : ""}`);
+    if (Array.isArray(context?.performanceGoals) && context.performanceGoals.length > 0) ctxLines.push(`Player goals: ${context.performanceGoals.join(", ")}`);
+    if (Array.isArray(context?.currentChallenges) && context.currentChallenges.length > 0) ctxLines.push(`Current challenges: ${context.currentChallenges.join(", ")}`);
+
+    const language = context?.language && typeof context.language === "string" ? context.language : "en";
+
+    const promptParts = [
+      roleHint,
+      ctxLines.length ? `Player Context:\n${ctxLines.join("\n")}` : "",
+      `Player question: ${question}`,
+      `Guidance: Respond in ${language}. Focus on actionable individual improvement. Provide specific drills, exercises, and mental strategies. Include self-assessment methods and measurable progress indicators.`,
+    ].filter(Boolean);
+
+    let answer = await callGeminiGenerateContent(promptParts);
+    if (!answer || typeof answer !== "string" || !answer.trim()) {
+      // Fallback: try a compact re-ask prompt once to avoid empty responses
+      const fallbackPrompt = [
+        `Provide specific ultimate frisbee improvement guidance for a player. Focus on actionable drills, technique fixes, and mental game. Include measurable progress indicators and self-assessment methods.`,
+        `Player question: ${question}`,
+      ];
+      try {
+        answer = await callGeminiGenerateContent(fallbackPrompt);
+      } catch (_) {}
+    }
+    if (!answer || !answer.trim()) {
+      // Provide a generic but useful template rather than asking the user to rephrase
+      answer = [
+        "🎯 Personal Performance Focus (assumed intermediate player, 60-min session)",
+        "🔧 Technical Skills (15m):",
+        "  • Backhand basics: 50 throws against wall - focus on wrist snap and release point",
+        "  • Forehand progression: 30 short, 20 medium, 10 long throws - track completion rate",
+        "🧠 Game Awareness (10m):",
+        "  • Vision drills: Pick out 5 different cutting patterns while stationary",
+        "  • Decision making: Watch game footage, pause every 10s to predict next move",
+        "⚡ Conditioning (15m):",
+        "  • Sprint intervals: 6x20m with 30s rest (track times)",
+        "  • Agility: Figure-8 cone drill - 8 reps, focus on quick direction changes",
+        "🎮 Game Application (15m):",
+        "  • Handler movement: Practice 5 pivot points around a 10m circle",
+        "  • Deep game: 15 long throws, analyze flight patterns and placement",
+        "📊 Self-Assessment: Rate each drill 1-10, note biggest improvement area",
+        "💡 Mental Prep: Visualize 3 successful game scenarios before next practice"
+      ].join("\n");
+    }
+
+    return res.json({ success: true, data: { answer } });
+  } catch (err) {
+    console.error("playerAssistant error:", err);
+    return res.status(500).json({ success: false, message: err.message || "AI service failed" });
+  }
+};
+
+export default { coachAssistant, playerAssistant };
+
 
 

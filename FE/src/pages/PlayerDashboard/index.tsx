@@ -15,12 +15,15 @@ import TransferSection from "./TransferSection";
 import MatchesSection from "./MatchesSection";
 import StatsCards from "./StatsCards";
 import FeedbackSection from "./FeedbackSection";
+import PlayerAIChat from "@/components/PlayerAIChat";
+import { playerStatsAPI } from "@/services/api";
 
 const PlayerDashboard = () => {
   const [playerId, setPlayerId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [playerProfile, setPlayerProfile] = useState<any>(null);
   const [stats, setStats] = useState<any>(null);
+  const [playerStats, setPlayerStats] = useState<any[]>([]);
   const [activeTab, setActiveTab] = useState("overview");
 
   useEffect(() => {
@@ -37,9 +40,10 @@ const PlayerDashboard = () => {
   const fetchPlayerData = async (id: string) => {
     try {
       setLoading(true);
-      const [profileRes, statsRes] = await Promise.all([
+      const [profileRes, statsRes, playerStatsRes] = await Promise.all([
         fetch(`http://localhost:9000/api/player/${id}`),
         fetch(`http://localhost:9000/api/player/${id}/stats`),
+        playerStatsAPI.getPlayerStats(id)
       ]);
 
       if (profileRes.ok) {
@@ -50,6 +54,10 @@ const PlayerDashboard = () => {
       if (statsRes.ok) {
         const statsData = await statsRes.json();
         setStats(statsData);
+      }
+
+      if (playerStatsRes.success) {
+        setPlayerStats(playerStatsRes.data.stats || []);
       }
     } catch (error) {
       console.error("Error fetching player data:", error);
@@ -169,11 +177,29 @@ const PlayerDashboard = () => {
           </Tabs>
         </div>
       </div>
+<BottomNav />
 
-      <BottomNav />
-    </div>
-  );
+{/* AI Performance Coach */}
+<PlayerAIChat
+  playerStats={playerStats}
+  recentMatches={[]}
+  performanceGoals={[
+    "Improve throw accuracy",
+    "Better defensive positioning",
+    "Increase game awareness",
+    "Faster decision making"
+  ]}
+  currentChallenges={[
+    "Handling pressure situations",
+    "Long throws under wind",
+    "Quick transitions",
+    "Communication with teammates"
+  ]}
+/>
+</div>
+);
 };
 
 export default PlayerDashboard;
+
 

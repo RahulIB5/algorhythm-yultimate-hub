@@ -7,6 +7,7 @@ import Team from "../models/teamModel.js";
 import MatchAttendance from "../models/matchAttendanceModel.js";
 import PlayerProfile from "../models/playerProfileModel.js";
 import Person from "../models/personModel.js";
+import { createNotification } from "./notificationController.js";
 
 // Get matches that need feedback (after each match completion)
 export const getMatchesNeedingFeedback = async (req, res) => {
@@ -366,6 +367,22 @@ export const submitSpiritScore = async (req, res) => {
 
     await spiritSubmission.save();
 
+    // Notify opposing coach about spirit score received
+    try {
+      const opponentTeam = await Team.findById(opponentTeamId);
+      if (opponentTeam && opponentTeam.coachId) {
+        await createNotification(
+          opponentTeam.coachId,
+          "spirit_score_received",
+          "Spirit Score Received",
+          `Your team received a spirit score from ${team.teamName} for the match.`,
+          { relatedEntityId: matchId, relatedEntityType: "match" }
+        );
+      }
+    } catch (notificationError) {
+      console.error("Error creating notification for spirit score:", notificationError);
+    }
+
     // Update tournament feedback tracking
     await updateTournamentFeedbackTracking(match.tournamentId, submittingCoachId, team._id, matchId, 'spirit');
 
@@ -496,6 +513,19 @@ export const submitPlayerFeedback = async (req, res) => {
     });
 
     await playerFeedback.save();
+
+    // Notify player about feedback received
+    try {
+      await createNotification(
+        playerId,
+        "spirit_score_received",
+        "Feedback Received",
+        `Your coach has submitted feedback for your performance in the match. Score: ${score}`,
+        { relatedEntityId: matchId, relatedEntityType: "match" }
+      );
+    } catch (notificationError) {
+      console.error("Error creating notification for player feedback:", notificationError);
+    }
 
     // Update player profile feedback
     await updatePlayerProfileFeedback(playerId, submittingCoachId, matchId, score, feedback);

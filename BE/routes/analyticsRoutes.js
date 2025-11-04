@@ -3,7 +3,10 @@ import { protect } from "../middleware/authMiddleware.js";
 import {
   getTournamentSummary,
   getPlayerParticipationData,
-  downloadTournamentReport
+  downloadTournamentReport,
+  getAdminOverview,
+  getCoachOverview,
+  getVolunteerOverview
 } from "../controllers/analyticsController.js";
 
 const router = express.Router();
@@ -25,6 +28,18 @@ router.get("/player-participation", getPlayerParticipationData);
 // GET /api/analytics/report/:tournamentId/:reportType
 // reportType: attendance, matches, scoring, full
 router.get("/report/:tournamentId/:reportType", downloadTournamentReport);
+
+// Admin Overview Dashboard
+// GET /api/analytics/admin-overview
+router.get("/admin-overview", getAdminOverview);
+
+// Coach Overview Dashboard
+// GET /api/analytics/coach-overview
+router.get("/coach-overview", getCoachOverview);
+
+// Volunteer Overview Dashboard
+// GET /api/analytics/volunteer-overview
+router.get("/volunteer-overview", getVolunteerOverview);
 
 export default router;
 

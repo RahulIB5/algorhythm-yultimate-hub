@@ -7,6 +7,7 @@ import Tournament from "../models/tournamentModel.js";
 import SpiritSubmission from "../models/spiritSubmissionModel.js";
 import PlayerMatchFeedback from "../models/playerMatchFeedbackModel.js";
 import MatchAttendance from "../models/matchAttendanceModel.js";
+import { createNotification, createNotificationsForUsers } from "./notificationController.js";
 
 // Create a new team (coach registers on behalf of a team)
 export const createTeam = async (req, res) => {
@@ -132,6 +133,65 @@ export const createTeam = async (req, res) => {
     });
 
     await team.save();
+
+    // Get tournament details
+    const tournament = tournamentId ? await Tournament.findById(tournamentId).select('name') : null;
+
+    // Notify coach about team creation
+    try {
+      await createNotification(
+        coachId,
+        "player_assigned",
+        "Team Created",
+        tournament 
+          ? `Your team "${teamName}" has been registered for ${tournament.name}.`
+          : `Your team "${teamName}" has been created.`,
+        { relatedEntityId: team._id, relatedEntityType: "team" }
+      );
+    } catch (notificationError) {
+      console.error("Error creating notification for team creation:", notificationError);
+    }
+
+    // Notify players about team assignment
+    if (players && Array.isArray(players) && players.length > 0) {
+      const playerIds = players.map(p => p.playerId || p._id).filter(id => id);
+      if (playerIds.length > 0) {
+        try {
+          await createNotificationsForUsers(
+            playerIds,
+            "coach_assigned",
+            "Team Assignment",
+            tournament
+              ? `You have been added to team "${teamName}" for ${tournament.name}.`
+              : `You have been added to team "${teamName}".`,
+            { relatedEntityId: team._id, relatedEntityType: "team" }
+          );
+        } catch (notificationError) {
+          console.error("Error creating notifications for players:", notificationError);
+        }
+      }
+    }
+
+    // Notify admins about team registration if tournament is provided
+    if (tournamentId && tournament) {
+      try {
+        const admins = await Person.find({ roles: { $in: ["admin"] } });
+        const adminIds = admins.map(admin => admin._id);
+        
+        if (adminIds.length > 0) {
+          await createNotificationsForUsers(
+            adminIds,
+            "tournament_registration",
+            "Team Registered",
+            `Coach ${coach.firstName} ${coach.lastName} has registered team "${teamName}" for ${tournament.name}.`,
+            { relatedEntityId: tournamentId, relatedEntityType: "tournament" }
+          );
+        }
+      } catch (notificationError) {
+        console.error("Error creating notifications for admins:", notificationError);
+      }
+    }
+
     res.status(201).json({ message: "Team created", team });
   } catch (error) {
     console.error("Create team error:", error);

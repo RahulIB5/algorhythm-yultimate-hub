@@ -1348,7 +1348,135 @@ export interface PlayerParticipationResponse {
   };
 }
 
+// Admin Overview interfaces
+export interface AdminOverviewStats {
+  totalPlayers: { value: string; change: string };
+  activeTournaments: { value: string; change: string };
+  teamsRegistered: { value: string; change: string };
+  avgSpiritScore: { value: string; change: string };
+  sessionsThisMonth: { value: string; change: string };
+  attendanceRate: { value: string; change: string };
+}
+
+export interface AdminOverviewPendingActions {
+  accountRequests: number;
+  volunteerApplications: number;
+  tournamentApprovals: number;
+}
+
+export interface AdminOverviewQuickStats {
+  activeUsers: number;
+  sessionsBooked: string;
+  sessionsBookedPercentage: number;
+  tournamentCapacity: string;
+  tournamentCapacityPercentage: number;
+}
+
+export interface AdminOverviewResponse {
+  success: boolean;
+  data: {
+    stats: AdminOverviewStats;
+    pendingActions: AdminOverviewPendingActions;
+    quickStats: AdminOverviewQuickStats;
+  };
+}
+
+// Coach Overview interfaces
+export interface CoachOverviewStats {
+  activeStudents: { value: string; change: string };
+  sessionsThisWeek: { value: string; change: string };
+  attendanceRate: { value: string; change: string };
+  avgProgressScore: { value: string; change: string };
+}
+
+export interface CoachOverviewResponse {
+  success: boolean;
+  data: {
+    stats: CoachOverviewStats;
+  };
+}
+
+// Volunteer Overview interfaces
+export interface VolunteerOverviewStats {
+  upcomingEvents: { value: string; change: string };
+  hoursContributed: { value: string; change: string };
+  studentsImpacted: { value: string; change: string };
+  eventsSupported: { value: string; change: string };
+}
+
+export interface VolunteerOverviewResponse {
+  success: boolean;
+  data: {
+    stats: VolunteerOverviewStats;
+  };
+}
+
 // Analytics API functions
+// Notification interfaces
+export interface Notification {
+  _id: string;
+  type: string;
+  title: string;
+  message: string;
+  read: boolean;
+  readAt?: string;
+  relatedEntityId?: string;
+  relatedEntityType?: string;
+  createdAt: string;
+  time: string;
+}
+
+export interface NotificationResponse {
+  success: boolean;
+  data: {
+    notifications: Notification[];
+    unreadCount: number;
+    total: number;
+  };
+}
+
+export interface UnreadCountResponse {
+  success: boolean;
+  data: {
+    unreadCount: number;
+  };
+}
+
+// Notification API functions
+export const notificationAPI = {
+  // Get all notifications for current user
+  getNotifications: async (limit = 50, offset = 0): Promise<NotificationResponse> => {
+    const response = await api.get('/notifications', {
+      params: { limit, offset }
+    });
+    return response.data;
+  },
+
+  // Get unread count
+  getUnreadCount: async (): Promise<UnreadCountResponse> => {
+    const response = await api.get('/notifications/unread-count');
+    return response.data;
+  },
+
+  // Mark notification as read
+  markAsRead: async (notificationId: string): Promise<{ success: boolean; message: string }> => {
+    const response = await api.put(`/notifications/${notificationId}/read`);
+    return response.data;
+  },
+
+  // Mark all notifications as read
+  markAllAsRead: async (): Promise<{ success: boolean; message: string }> => {
+    const response = await api.put('/notifications/read-all');
+    return response.data;
+  },
+
+  // Delete notification
+  deleteNotification: async (notificationId: string): Promise<{ success: boolean; message: string }> => {
+    const response = await api.delete(`/notifications/${notificationId}`);
+    return response.data;
+  },
+};
+
 export const analyticsAPI = {
   // Get tournament summary
   getTournamentSummary: async (tournamentId?: string): Promise<TournamentSummaryResponse> => {
@@ -1364,6 +1492,24 @@ export const analyticsAPI = {
     const response = await api.get('/analytics/player-participation', {
       params: tournamentId ? { tournamentId } : {}
     });
+    return response.data;
+  },
+
+  // Get admin overview
+  getAdminOverview: async (): Promise<AdminOverviewResponse> => {
+    const response = await api.get('/analytics/admin-overview');
+    return response.data;
+  },
+
+  // Get coach overview
+  getCoachOverview: async (): Promise<CoachOverviewResponse> => {
+    const response = await api.get('/analytics/coach-overview');
+    return response.data;
+  },
+
+  // Get volunteer overview
+  getVolunteerOverview: async (): Promise<VolunteerOverviewResponse> => {
+    const response = await api.get('/analytics/volunteer-overview');
     return response.data;
   },
 
@@ -1478,7 +1624,6 @@ export const playerStatsAPI = {
     return response.data;
   },
 };
-
 // AI Assistant API (merged)
 export const aiAPI = {
   coachAssistant: async (payload: {
@@ -1493,5 +1638,27 @@ export const aiAPI = {
   }): Promise<{ success: boolean; data: { answer: string } }> => {
     const response = await api.post('/ai/coach-assistant', payload, { timeout: 30000 });
     return response.data;
+  },
+  
+  playerAssistant: async (payload: {
+    question: string;
+    context?: {
+      playerStats?: any;
+      recentMatches?: any[];
+      language?: string;
+      performanceGoals?: string[];
+      currentChallenges?: string[];
+    };
+  }): Promise<{ success: boolean; data: { answer: string } }> => {
+    try {
+      // Try the test endpoint first for development
+      const response = await api.post('/ai/test-assistant', payload, { timeout: 30000 });
+      return response.data;
+    } catch (error: any) {
+      console.error('Test assistant failed, trying regular endpoint:', error);
+      // Fallback to regular endpoint
+      const response = await api.post('/ai/player-assistant', payload, { timeout: 30000 });
+      return response.data;
+    }
   },
 };

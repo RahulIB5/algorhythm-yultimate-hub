@@ -25,6 +25,7 @@ import institutionRoutes from "./routes/institutionRoutes.js";
 import playerRoutes from "./routes/playerRoutes.js";
 import feedbackRoutes from "./routes/feedbackRoutes.js";
 import analyticsRoutes from "./routes/analyticsRoutes.js";
+import notificationRoutes from "./routes/notificationRoutes.js";
 import translationMiddleware from "./middleware/translationMiddleware.js";
 import translateRoutes from "./routes/translateRoutes.js";
 import aiRoutes from "./routes/aiRoutes.js";
@@ -67,6 +68,7 @@ app.use("/api/institutions", institutionRoutes);
 app.use("/api/player", playerRoutes);
 app.use("/api/feedback", feedbackRoutes);
 app.use("/api/analytics", analyticsRoutes);
+app.use("/api/notifications", notificationRoutes);
 app.use("/api/translate", translateRoutes);
 app.use("/api/ai", aiRoutes);
 
