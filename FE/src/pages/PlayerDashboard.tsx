@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Trophy, Calendar, Target, Star, TrendingUp, Award } from "lucide-react";
 import Navbar from "@/components/Navbar";
 import BottomNav from "@/components/BottomNav";
-import PlayerAIChat from "@/components/PlayerAIChat";
+import PlayerNotifications from "@/components/PlayerNotifications";
 import { playerStatsAPI } from "@/services/api";
 import { handleAPIError } from "@/services/api";
 
@@ -122,16 +122,19 @@ const PlayerDashboard = () => {
         <div className="container mx-auto">
           {/* Header */}
           <div className="mb-8 space-y-2 animate-slide-up">
-            <div className="flex items-center gap-3">
-              <div className="bg-gradient-to-br from-purple-500 to-purple-600 p-3 rounded-xl">
-                <Trophy className="h-6 w-6 text-white" />
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="bg-gradient-to-br from-purple-500 to-purple-600 p-3 rounded-xl">
+                  <Trophy className="h-6 w-6 text-white" />
+                </div>
+                <div>
+                  <h1 className="text-4xl font-bold">Player Dashboard</h1>
+                  <p className="text-muted-foreground text-lg">
+                    Track your games and achievements
+                  </p>
+                </div>
               </div>
-              <div>
-                <h1 className="text-4xl font-bold">Player Dashboard</h1>
-                <p className="text-muted-foreground text-lg">
-                  Track your games and achievements
-                </p>
-              </div>
+              <PlayerNotifications />
             </div>
           </div>
 
@@ -223,12 +226,6 @@ const PlayerDashboard = () => {
       <BottomNav />
       
       {/* AI Performance Coach */}
-      <PlayerAIChat
-        playerStats={playerStats}
-        recentMatches={recentMatches}
-        performanceGoals={performanceGoals}
-        currentChallenges={currentChallenges}
-      />
     </div>
   );
 };

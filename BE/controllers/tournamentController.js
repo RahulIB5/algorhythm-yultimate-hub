@@ -2,6 +2,7 @@ import Tournament from "../models/tournamentModel.js";
 import cloudinary from "../config/cloudinary.js";
 import Person from "../models/personModel.js";
 import { validationResult } from "express-validator";
+import { createNotificationsForUsers, notifyTournamentStakeholders } from "./notificationController.js";
 
 // Create a new tournament
 export const createTournament = async (req, res) => {
@@ -139,6 +140,22 @@ export const createTournament = async (req, res) => {
       registrationOpen: tournament.registrationOpen,
       createdAt: tournament.createdAt
     };
+
+    try {
+      const admins = await Person.find({ roles: { $in: ['admin'] } }).select('_id');
+      const adminIds = admins.map(a => a._id);
+      if (adminIds.length > 0) {
+        await createNotificationsForUsers(
+          adminIds,
+          'tournament_created',
+          'Tournament Created',
+          `New tournament "${name}" has been created.`,
+          { relatedEntityId: tournament._id, relatedEntityType: 'tournament' }
+        );
+      }
+    } catch (notificationError) {
+      console.error('Error notifying admins for tournament creation:', notificationError);
+    }
 
     res.status(201).json({
       success: true,
@@ -369,6 +386,17 @@ export const updateTournament = async (req, res) => {
       }
     });
 
+  try {
+    await notifyTournamentStakeholders(
+      tournament._id,
+      'tournament_updated',
+      'Tournament Updated',
+      `Tournament "${tournament.name}" details have been updated.`
+    );
+  } catch (notificationError) {
+    console.error('Error notifying stakeholders for tournament update:', notificationError);
+  }
+
   } catch (error) {
     console.error("Update tournament error:", error);
     res.status(500).json({
@@ -397,6 +425,17 @@ export const deleteTournament = async (req, res) => {
       success: true,
       message: "Tournament deleted successfully"
     });
+
+  try {
+    await notifyTournamentStakeholders(
+      id,
+      'tournament_deleted',
+      'Tournament Deleted',
+      'A tournament you are part of has been deleted.'
+    );
+  } catch (notificationError) {
+    console.error('Error notifying stakeholders for tournament deletion:', notificationError);
+  }
 
   } catch (error) {
     console.error("Delete tournament error:", error);

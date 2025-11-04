@@ -2,6 +2,7 @@ import mongoose from "mongoose";
 import Session from "../models/sessionModel.js";
 import Person from "../models/personModel.js";
 import Cohort from "../models/cohortModel.js";
+import { createNotification, createNotificationsForUsers } from "./notificationController.js";
 
 // Get all sessions
 export const getAllSessions = async (req, res) => {
@@ -134,6 +135,20 @@ export const createSession = async (req, res) => {
       .populate("assignedCoaches", "firstName lastName email uniqueUserId")
       .populate("enrolledPlayers", "firstName lastName email uniqueUserId");
 
+  try {
+    if (validCoaches && validCoaches.length > 0) {
+      await createNotificationsForUsers(
+        validCoaches,
+        "session_assigned",
+        "New Session Assigned",
+        `You have been assigned to session "${title}".`,
+        { relatedEntityId: newSession._id, relatedEntityType: "session" }
+      );
+    }
+  } catch (notificationError) {
+    console.error("Error notifying coaches for new session:", notificationError);
+  }
+
     res.status(201).json({
       message: "Session created successfully",
       session: populatedSession,
@@ -215,6 +230,31 @@ export const updateSession = async (req, res) => {
       .populate("cohortId", "name")
       .populate("assignedCoaches", "firstName lastName email uniqueUserId")
       .populate("enrolledPlayers", "firstName lastName email uniqueUserId");
+
+  try {
+    const coachIds = (session.assignedCoaches || []).map(id => id.toString());
+    if (coachIds.length > 0) {
+      await createNotificationsForUsers(
+        coachIds,
+        "session_updated",
+        "Session Updated",
+        `Session "${session.title}" details have been updated.`,
+        { relatedEntityId: session._id, relatedEntityType: "session" }
+      );
+    }
+    const playerIds = (session.enrolledPlayers || []).map(id => id.toString());
+    if (playerIds.length > 0) {
+      await createNotificationsForUsers(
+        playerIds,
+        "session_updated",
+        "Session Updated",
+        `Session "${session.title}" details have been updated.`,
+        { relatedEntityId: session._id, relatedEntityType: "session" }
+      );
+    }
+  } catch (notificationError) {
+    console.error("Error notifying users for session update:", notificationError);
+  }
 
     res.status(200).json({
       message: "Session updated successfully",
@@ -358,6 +398,18 @@ export const addPlayersToSession = async (req, res) => {
       .populate("cohortId", "name")
       .populate("assignedCoaches", "firstName lastName email uniqueUserId")
       .populate("enrolledPlayers", "firstName lastName email uniqueUserId");
+
+  try {
+    await createNotificationsForUsers(
+      newPlayerIds,
+      "session_enrollment",
+      "Added To Session",
+      `You have been added to session "${session.title}".`,
+      { relatedEntityId: session._id, relatedEntityType: "session" }
+    );
+  } catch (notificationError) {
+    console.error("Error notifying players added to session:", notificationError);
+  }
 
     res.status(200).json({
       message: `${newPlayerIds.length} player(s) added successfully`,

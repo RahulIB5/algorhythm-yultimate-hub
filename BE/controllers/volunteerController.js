@@ -1,7 +1,8 @@
 import VolunteerTournamentAssignment from "../models/volunteerTournamentAssignmentModel.js";
 import Person from "../models/personModel.js";
 import Tournament from "../models/tournamentModel.js";
-import { createNotification } from "./notificationController.js";
+import Team from "../models/teamModel.js";
+import { createNotification, createNotificationsForUsers } from "./notificationController.js";
 
 // Get all volunteers (people with volunteer role)
 export const getAllVolunteers = async (req, res) => {
@@ -123,6 +124,25 @@ export const assignVolunteersToTournament = async (req, res) => {
       }
     }
 
+    // Notify coaches of teams registered in this tournament about new volunteer assignments
+    try {
+      const teams = await Team.find({ tournamentId: tournamentId }).populate("coachId", "_id firstName lastName");
+      const coachIds = teams.map(team => team.coachId._id.toString()).filter((id, index, self) => self.indexOf(id) === index); // Remove duplicates
+      
+      if (coachIds.length > 0) {
+        const volunteerNames = volunteers.map(v => `${v.firstName} ${v.lastName}`).join(", ");
+        await createNotificationsForUsers(
+          coachIds,
+          "volunteer_assigned_to_tournament",
+          "New Volunteers Assigned",
+          `New volunteer(s) ${volunteerNames} have been assigned to tournament "${tournament?.name || "your tournament"}".`,
+          { relatedEntityId: tournamentId, relatedEntityType: "tournament" }
+        );
+      }
+    } catch (notificationError) {
+      console.error("Error creating notifications for coaches about volunteer assignment:", notificationError);
+    }
+
     res.status(200).json({
       success: true,
       message: `Successfully assigned ${assignments.length} volunteer(s) to tournament`,
@@ -169,6 +189,18 @@ export const unassignVolunteerFromTournament = async (req, res) => {
         success: false,
         message: "Assignment not found"
       });
+    }
+
+    try {
+      await createNotification(
+        volunteerId,
+        "volunteer_unassigned",
+        "Assignment Removed",
+        "You have been unassigned from a tournament.",
+        { relatedEntityId: tournamentId, relatedEntityType: "tournament" }
+      );
+    } catch (notificationError) {
+      console.error("Error creating notification for volunteer unassignment:", notificationError);
     }
 
     res.status(200).json({
@@ -326,6 +358,18 @@ export const updateAssignment = async (req, res) => {
     const updated = await VolunteerTournamentAssignment.findById(assignmentId)
       .populate("volunteerId", "firstName lastName email uniqueUserId")
       .populate("tournamentId", "name");
+
+  try {
+    await createNotification(
+      updated.volunteerId._id,
+      "volunteer_assignment_updated",
+      "Assignment Updated",
+      `Your volunteer assignment for "${updated.tournamentId?.name || "a tournament"}" has been updated.`,
+      { relatedEntityId: updated.tournamentId?._id || updated._id, relatedEntityType: "tournament" }
+    );
+  } catch (notificationError) {
+    console.error("Error creating notification for assignment update:", notificationError);
+  }
 
     res.status(200).json({
       success: true,

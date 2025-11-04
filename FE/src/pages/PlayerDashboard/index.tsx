@@ -3,6 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Trophy } from "lucide-react";
 import Navbar from "@/components/Navbar";
+import PlayerNotifications from "@/components/PlayerNotifications";
 import BottomNav from "@/components/BottomNav";
 import { toast } from "sonner";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -107,6 +108,9 @@ const PlayerDashboard = () => {
   return (
     <div className="min-h-screen bg-background">
       <Navbar />
+      <div className="fixed top-10 right-60 z-50 animate-fade-in">
+        <PlayerNotifications />
+      </div>
 
       <div className="pt-20 px-4 pb-32">
         <div className="container mx-auto">

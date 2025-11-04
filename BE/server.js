@@ -29,6 +29,7 @@ import notificationRoutes from "./routes/notificationRoutes.js";
 import translationMiddleware from "./middleware/translationMiddleware.js";
 import translateRoutes from "./routes/translateRoutes.js";
 import aiRoutes from "./routes/aiRoutes.js";
+import testRoutes from "./routes/testRoutes.js";
 
 // ✅ Fix for __dirname and __filename in ES Modules
 const __filename = fileURLToPath(import.meta.url);
@@ -44,8 +45,10 @@ const app = express();
 
 // Middleware
 app.use(express.json());
-app.use(cors());
-
+app.use(cors({
+  origin: process.env.FRONTEND_URL || "*",
+  credentials: true
+}));
 // Translation middleware - must be before routes to intercept all responses
 app.use("/api", translationMiddleware);
 
@@ -71,13 +74,14 @@ app.use("/api/analytics", analyticsRoutes);
 app.use("/api/notifications", notificationRoutes);
 app.use("/api/translate", translateRoutes);
 app.use("/api/ai", aiRoutes);
+app.use("/api/test", testRoutes);
 
 // ✅ Serve uploaded files statically
 app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 
 // Root route (for testing)
 app.get("/", (req, res) => {
-  res.send("✅ TAMUI Backend API Running");
+  res.send("✅Backend API Running");
 });
 
 // Global error handler

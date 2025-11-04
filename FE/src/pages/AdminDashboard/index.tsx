@@ -4,6 +4,7 @@ import {
 } from "lucide-react";
 import AdminNavbar from "@/components/AdminNavbar";
 import BottomNav from "@/components/BottomNav";
+import AdminNotifications from "@/components/AdminNotifications";
 import { toast } from "sonner";
 import OverviewTab from "./OverviewTab";
 import TournamentsTab from "./TournamentsTab";
@@ -59,32 +60,31 @@ const AdminDashboard = () => {
     }
   };
 
-  const handleApprove = async (id: string | number, type: 'account' | 'volunteer' = 'account') => {
+  const handleApprove = async (id: string | number, coachId?: string, role?: string) => {
     try {
-      if (type === 'account') {
-        await authAPI.approvePlayer(id.toString());
-        toast.success('Player approved successfully!');
-        fetchPendingRequests();
-      } else {
-        // Handle volunteer approval (if implemented in backend)
-        toast.success('Volunteer approved successfully!');
-      }
+      // All role approvals go through the same backend endpoint
+      await authAPI.approvePlayer(id.toString(), coachId);
+      
+      // Show appropriate success message based on role
+      const roleLabel = role === 'coach' ? 'Coach' : role === 'volunteer' ? 'Volunteer' : 'Player';
+      toast.success(`${roleLabel} approved successfully!`);
+      
+      fetchPendingRequests();
     } catch (error) {
       const errorMessage = handleAPIError(error);
       toast.error(errorMessage);
     }
   };
 
-  const handleReject = async (id: string | number, type: 'account' | 'volunteer' = 'account') => {
+  const handleReject = async (id: string | number, role?: string) => {
     try {
-      if (type === 'account') {
-        await authAPI.rejectPlayer(id.toString());
-        toast.success('Request rejected!');
-        fetchPendingRequests();
-      } else {
-        // Handle volunteer rejection (if implemented in backend)
-        toast.success('Volunteer rejected!');
-      }
+      await authAPI.rejectPlayer(id.toString());
+      
+      // Show appropriate success message based on role
+      const roleLabel = role === 'coach' ? 'Coach' : role === 'volunteer' ? 'Volunteer' : 'Player';
+      toast.success(`${roleLabel} request rejected!`);
+      
+      fetchPendingRequests();
     } catch (error) {
       const errorMessage = handleAPIError(error);
       toast.error(errorMessage);
@@ -112,6 +112,9 @@ const AdminDashboard = () => {
   return (
     <div className="min-h-screen bg-background">
       <AdminNavbar/>
+      <div className="fixed top-10 right-60 z-50 animate-fade-in">
+        <AdminNotifications />
+      </div>
       
       <div className="pt-20 px-4 pb-32">
         <div className="container mx-auto max-w-7xl">

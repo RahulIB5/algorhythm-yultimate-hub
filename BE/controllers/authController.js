@@ -6,10 +6,10 @@ import RoleRequest from "../models/roleRequestModel.js";
 import CredentialPool from "../models/credentialPoolModel.js";
 import PlayerProfile from "../models/playerProfileModel.js";
 import CoachProfile from "../models/coachProfileModel.js";
-import Notification from "../models/notificationModel.js";
 import School from "../models/schoolModel.js";
-import sendMail from "../utils/sendMail.js";
 import { createNotification } from "./notificationController.js";
+import sendMail from "../utils/sendMailEnhanced.js";
+import sendSMS, { formatPhoneNumber } from "../utils/sendSMS.js";
 
 const JWT_SECRET = process.env.JWT_SECRET || "tamui_secret";
 
@@ -119,13 +119,15 @@ export const playerSignup = async (req, res) => {
   }
 };
 
-/* 🧑‍💼 ADMIN APPROVES PLAYER / VOLUNTEER */
+/* 🧑‍💼 ADMIN APPROVES PLAYER / COACH / VOLUNTEER */
 export const approvePlayer = async (req, res) => {
   try {
     const { requestId, coachId } = req.body;
 
     const request = await RoleRequest.findById(requestId);
-    if (!request) return res.status(404).json({ message: "Request not found" });
+    if (!request) {
+      return res.status(404).json({ message: "Request not found" });
+    }
 
     let finalCoachId = coachId;
 
@@ -168,34 +170,70 @@ export const approvePlayer = async (req, res) => {
     // Generate unique code
     const uniqueUserId = `${request.requestedRole.substring(0, 3).toUpperCase()}-${Date.now()}`;
 
-    // Create user in Person
-    const newPerson = new Person({
-      firstName: request.applicantInfo.firstName,
-      lastName: request.applicantInfo.lastName,
-      email: request.applicantInfo.email,
-      phone: request.applicantInfo.phone,
-      uniqueUserId,
-      passwordHash: request.passwordHash, // ✅ copy from request
-      roles: [request.requestedRole],
-    });
-    await newPerson.save();
+    // Check if user already exists with this email
+    let existingPerson = await Person.findOne({ email: request.applicantInfo.email });
+    
+    let newPerson;
+    if (existingPerson) {
+      // If person exists, update their roles and info instead of creating new
+      if (!existingPerson.roles.includes(request.requestedRole)) {
+        existingPerson.roles.push(request.requestedRole);
+      }
+      
+      // Update other fields if they're empty or different
+      existingPerson.firstName = existingPerson.firstName || request.applicantInfo.firstName;
+      existingPerson.lastName = existingPerson.lastName || request.applicantInfo.lastName;
+      existingPerson.phone = existingPerson.phone || request.applicantInfo.phone;
+      existingPerson.passwordHash = existingPerson.passwordHash || request.passwordHash;
+      
+      // Update unique ID if not set
+      if (!existingPerson.uniqueUserId) {
+        existingPerson.uniqueUserId = uniqueUserId;
+      }
+      
+      await existingPerson.save();
+      newPerson = existingPerson;
+      console.log("Updated existing person:", { id: newPerson._id, uniqueUserId: newPerson.uniqueUserId });
+    } else {
+      // Create new user in Person
+      newPerson = new Person({
+        firstName: request.applicantInfo.firstName,
+        lastName: request.applicantInfo.lastName,
+        email: request.applicantInfo.email,
+        phone: request.applicantInfo.phone,
+        uniqueUserId,
+        passwordHash: request.passwordHash,
+        roles: [request.requestedRole],
+      });
+      await newPerson.save();
+      console.log("Created new person:", { id: newPerson._id, uniqueUserId: newPerson.uniqueUserId });
+    }
 
     // Create PlayerProfile if role is player
     if (request.requestedRole === "player") {
-      const profileData = {
-        personId: newPerson._id,
-        age: request.applicantInfo.age,
-        gender: request.applicantInfo.gender,
-        experience: request.applicantInfo.experience,
-        assignedCoachId: finalCoachId || undefined,
-      };
+      // Check if player profile already exists
+      const existingPlayerProfile = await PlayerProfile.findOne({ personId: newPerson._id });
+      
+      if (!existingPlayerProfile) {
+        const profileData = {
+          personId: newPerson._id,
+          age: request.applicantInfo.age,
+          gender: request.applicantInfo.gender,
+          experience: request.applicantInfo.experience,
+          assignedCoachId: finalCoachId || undefined,
+        };
 
-      // Add affiliation if present
-      if (request.applicantInfo.affiliation) {
-        profileData.affiliation = request.applicantInfo.affiliation;
+        // Add affiliation if present
+        if (request.applicantInfo.affiliation) {
+          profileData.affiliation = request.applicantInfo.affiliation;
+        }
+
+        await PlayerProfile.create(profileData);
+      } else if (finalCoachId && !existingPlayerProfile.assignedCoachId) {
+        // Update existing profile with coach if not already assigned
+        existingPlayerProfile.assignedCoachId = finalCoachId;
+        await existingPlayerProfile.save();
       }
-
-      await PlayerProfile.create(profileData);
 
       // Add coach to institution's coachIds if not already there
       if (finalCoachId && request.applicantInfo.affiliation) {
@@ -211,29 +249,42 @@ export const approvePlayer = async (req, res) => {
         const coach = await Person.findById(finalCoachId);
         if (coach) {
           // Create in-app notification for coach
-          await createNotification(
-            finalCoachId,
-            "player_assigned",
-            "New Player Assigned",
-            `A new player ${request.applicantInfo.firstName} ${request.applicantInfo.lastName} has been assigned to you.`,
-            { relatedEntityId: newPerson._id, relatedEntityType: "player" }
-          );
+          if (finalCoachId) {
+            await createNotification(
+              finalCoachId,
+              "player_assigned",
+              "New Player Assigned",
+              `A new player ${request.applicantInfo.firstName} ${request.applicantInfo.lastName} has been assigned to you.`,
+              { relatedEntityId: newPerson._id, relatedEntityType: "player" }
+            );
+          }
 
-          // Legacy email notification
-          await Notification.create({
-            recipient: coach.email,
-            messageType: "playerAssigned",
-            messageBody: `A new player ${request.applicantInfo.firstName} ${request.applicantInfo.lastName} has been assigned to you.`,
-            sentAt: new Date(),
-            status: "sent",
-          });
+          // Email sending disabled to prevent blocking approvals
+          try {
+            const coachEmailSubject = "New Player Assigned - YUltimate Hub";
+            const coachEmailMessage = `Hello Coach ${coach.firstName},\n\nA new player has been assigned to you:\n\nPlayer: ${request.applicantInfo.firstName} ${request.applicantInfo.lastName}\nEmail: ${request.applicantInfo.email}\nPhone: ${request.applicantInfo.phone}\n\nPlease welcome them to your team!\n\nBest regards,\nYUltimate Hub Team`;
+            
+            await sendMail(
+              coach.email,
+              coachEmailSubject,
+              coachEmailMessage
+            );
+          } catch (emailError) {
+            console.log("📧 Email notification failed for coach assignment:", emailError.message);
+          }
 
-          // Also send email notification
-          await sendMail(
-            coach.email,
-            "New Player Assigned",
-            `A new player has been assigned to you:\n\nPlayer Name: ${request.applicantInfo.firstName} ${request.applicantInfo.lastName}\nAge: ${request.applicantInfo.age}\nExperience: ${request.applicantInfo.experience}\nAffiliation: ${request.applicantInfo.affiliation?.name || "N/A"}\n\nPlease check your dashboard for details.`
-          );
+          // Send SMS to coach
+          try {
+            const formattedCoachPhone = formatPhoneNumber(coach.phone);
+            if (formattedCoachPhone) {
+              const coachSMSMessage = `YUltimate Hub: New player ${request.applicantInfo.firstName} ${request.applicantInfo.lastName} assigned to you. Check your email for details.`;
+              
+              await sendSMS(formattedCoachPhone, coachSMSMessage);
+              console.log("✅ Coach assignment SMS sent to:", formattedCoachPhone);
+            }
+          } catch (smsError) {
+            console.error("❌ Coach assignment SMS failed:", smsError.message);
+          }
         }
       }
 
@@ -252,6 +303,32 @@ export const approvePlayer = async (req, res) => {
       }
     }
 
+    // Create CoachProfile if role is coach
+    if (request.requestedRole === "coach") {
+      // Check if coach profile already exists
+      const existingCoachProfile = await CoachProfile.findOne({ personId: newPerson._id });
+      
+      if (!existingCoachProfile) {
+        const coachProfileData = {
+          personId: newPerson._id,
+          experienceYears: 0, // Default value, can be updated later
+          certifications: [], // Empty initially, can be updated later
+          totalSessionsConducted: 0,
+          averageFeedbackScore: 0,
+          currentSessions: [],
+          upcomingSessions: [],
+          feedbackReceived: [],
+        };
+
+        // Add affiliation if present in the request
+        if (request.applicantInfo.affiliation) {
+          coachProfileData.affiliation = request.applicantInfo.affiliation;
+        }
+
+        await CoachProfile.create(coachProfileData);
+      }
+    }
+
     // Update request
     request.status = "approved";
     request.reviewedAt = new Date();
@@ -259,32 +336,121 @@ export const approvePlayer = async (req, res) => {
 
     // Notify the user that their account has been approved
     try {
-      await createNotification(
+      // Validate that newPerson has an _id before creating notification
+      if (!newPerson || !newPerson._id) {
+        console.error("Cannot create notification: newPerson or newPerson._id is undefined");
+        console.error("newPerson:", newPerson);
+        throw new Error("Person record not properly created");
+      }
+
+      console.log("Creating notification for user:", {
+        userId: newPerson._id,
+        type: "account_approved",
+        title: "Account Approved",
+        message: `Your ${request.requestedRole} account has been approved! Your User ID is ${newPerson.uniqueUserId}.`
+      });
+
+      const notification = await createNotification(
         newPerson._id,
         "account_approved",
         "Account Approved",
-        `Your ${request.requestedRole} account has been approved! Your User ID is ${uniqueUserId}.`,
+        `Your ${request.requestedRole} account has been approved! Your User ID is ${newPerson.uniqueUserId}.`,
         { relatedEntityId: newPerson._id, relatedEntityType: "account" }
       );
+
+      if (!notification) {
+        console.error("Failed to create notification");
+      } else {
+        console.log("Notification created successfully:", notification._id);
+      }
     } catch (notificationError) {
       console.error("Error creating notification for account approval:", notificationError);
     }
 
-    // Save credentials (only ID)
-    await CredentialPool.create({
-      personId: newPerson._id,
-      uniqueUserId,
-      sentVia: "email",
+    // Save credentials (only ID) - check if already exists
+    const existingCredential = await CredentialPool.findOne({ personId: newPerson._id });
+    if (!existingCredential) {
+      await CredentialPool.create({
+        personId: newPerson._id,
+        uniqueUserId: newPerson.uniqueUserId,
+        sentVia: "email",
+      });
+    }
+
+    // Send comprehensive approval notifications (Email + SMS)
+    const approvalMessage = `🎉 Congratulations! Your ${request.requestedRole.toUpperCase()} account has been approved!\n\nYour User ID: ${newPerson.uniqueUserId}\n\nYou can now login to YUltimate Hub with your User ID and password.\n\nWelcome to the team!`;
+    
+    const emailSubject = `Account Approved - Welcome to YUltimate Hub!`;
+    
+    const emailHTML = `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background-color: #f9f9f9;">
+        <div style="background-color: #ffffff; padding: 30px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">
+          <h1 style="color: #4CAF50; text-align: center; margin-bottom: 30px;">🎉 Account Approved!</h1>
+          
+          <div style="background-color: #e8f5e8; padding: 20px; border-radius: 8px; border-left: 4px solid #4CAF50; margin-bottom: 20px;">
+            <h2 style="color: #2d5a2d; margin: 0 0 10px 0;">Welcome to YUltimate Hub!</h2>
+            <p style="color: #555; margin: 0; font-size: 16px;">Your ${request.requestedRole.toUpperCase()} account has been successfully approved.</p>
+          </div>
+          
+          <div style="background-color: #f0f8ff; padding: 20px; border-radius: 8px; margin-bottom: 20px;">
+            <h3 style="color: #1e3a8a; margin: 0 0 15px 0;">Your Login Credentials:</h3>
+            <p style="font-size: 18px; margin: 5px 0;"><strong>User ID:</strong> <span style="background-color: #fffacd; padding: 5px 10px; border-radius: 4px; font-family: monospace; color: #b8860b;">${newPerson.uniqueUserId}</span></p>
+            <p style="font-size: 16px; margin: 5px 0; color: #666;"><strong>Email:</strong> ${newPerson.email}</p>
+          </div>
+          
+          <div style="text-align: center; margin: 30px 0;">
+            <a href="#" style="background-color: #4CAF50; color: white; padding: 12px 30px; text-decoration: none; border-radius: 25px; font-weight: bold; display: inline-block;">Login to YUltimate Hub</a>
+          </div>
+          
+          <div style="border-top: 1px solid #ddd; padding-top: 20px; text-align: center; color: #888; font-size: 14px;">
+            <p>Thank you for joining YUltimate Hub! If you have any questions, please contact our support team.</p>
+            <p><strong>YUltimate Hub Team</strong></p>
+          </div>
+        </div>
+      </div>
+    `;
+
+    // Send Email Notification
+    try {
+      const emailResult = await sendMail(
+        newPerson.email,
+        emailSubject,
+        approvalMessage,
+        emailHTML
+      );
+      
+      if (emailResult) {
+        console.log("✅ Approval email sent successfully to:", newPerson.email);
+      }
+    } catch (emailError) {
+      console.error("❌ Approval email failed:", emailError.message);
+    }
+
+    // Send SMS Notification
+    try {
+      const formattedPhone = formatPhoneNumber(newPerson.phone);
+      if (formattedPhone) {
+        const smsMessage = `🎉 YUltimate Hub: Your ${request.requestedRole.toUpperCase()} account is approved! User ID: ${newPerson.uniqueUserId}. Welcome to the team!`;
+        
+        const smsResult = await sendSMS(formattedPhone, smsMessage);
+        
+        if (smsResult) {
+          console.log("✅ Approval SMS sent successfully to:", formattedPhone);
+        }
+      } else {
+        console.warn("⚠️  Invalid phone number for SMS:", newPerson.phone);
+      }
+    } catch (smsError) {
+      console.error("❌ Approval SMS failed:", smsError.message);
+    }
+    console.log("✅ User credentials:", { 
+      email: newPerson.email, 
+      uniqueUserId: newPerson.uniqueUserId 
     });
 
-    // Send only unique ID in mail
-    await sendMail(
-      newPerson.email,
-      "TAMUI Account Approved",
-      `Your account has been approved!\nUser ID: ${uniqueUserId}\nUse your password created during registration to log in.`
-    );
-
-    res.status(200).json({ message: "Account approved & Unique ID sent to user." });
+    const message = "Account approved successfully. User credentials created.";
+      
+    res.status(200).json({ message });
   } catch (error) {
     console.error("Approval error:", error);
     res.status(500).json({ message: "Approval failed", error: error.message });
@@ -419,5 +585,148 @@ export const getActiveCoaches = async (req, res) => {
   } catch (error) {
     console.error("Get coaches error:", error);
     res.status(500).json({ message: "Failed to fetch coaches", error: error.message });
+  }
+};
+
+/* ✅ APPROVE TRANSFER REQUEST */
+export const approveTransfer = async (req, res) => {
+  try {
+    const { playerId } = req.body;
+
+    if (!playerId) {
+      return res.status(400).json({ message: "Player ID is required" });
+    }
+
+    const profile = await PlayerProfile.findOne({ personId: playerId }).populate("personId");
+
+    if (!profile) {
+      return res.status(404).json({ message: "Player profile not found" });
+    }
+
+    if (!profile.transferRequest || profile.transferRequest.status !== "pending") {
+      return res.status(400).json({ message: "No pending transfer request found" });
+    }
+
+    // Update transfer request status
+    profile.transferRequest.status = "approved";
+    profile.transferRequest.approvedOn = new Date();
+
+    // Add to transfer history
+    if (!profile.transferHistory) {
+      profile.transferHistory = [];
+    }
+    profile.transferHistory.push({
+      ...profile.transferRequest.toObject(),
+      completedOn: new Date()
+    });
+
+    // Update current affiliation
+    profile.affiliation = {
+      type: profile.transferRequest.to.affiliationType,
+      id: profile.transferRequest.to.id,
+      name: profile.transferRequest.to.name,
+      location: profile.transferRequest.to.location,
+      joinedOn: new Date()
+    };
+
+    await profile.save();
+
+    // Notify the player
+    try {
+      await createNotification(
+        profile.personId._id,
+        "transfer_approved",
+        "Transfer Request Approved",
+        `Your transfer request to ${profile.transferRequest.to.name} has been approved!`,
+        { relatedEntityId: profile.transferRequest.to.id, relatedEntityType: "institution" }
+      );
+    } catch (notificationError) {
+      console.error("Error creating notification for transfer approval:", notificationError);
+    }
+
+    res.status(200).json({
+      message: "Transfer request approved successfully",
+      transferRequest: profile.transferRequest
+    });
+  } catch (error) {
+    console.error("Approve transfer error:", error);
+    res.status(500).json({ message: "Failed to approve transfer request", error: error.message });
+  }
+};
+
+/* ❌ REJECT TRANSFER REQUEST */
+export const rejectTransfer = async (req, res) => {
+  try {
+    const { playerId, reason } = req.body;
+
+    if (!playerId) {
+      return res.status(400).json({ message: "Player ID is required" });
+    }
+
+    const profile = await PlayerProfile.findOne({ personId: playerId }).populate("personId");
+
+    if (!profile) {
+      return res.status(404).json({ message: "Player profile not found" });
+    }
+
+    if (!profile.transferRequest || profile.transferRequest.status !== "pending") {
+      return res.status(400).json({ message: "No pending transfer request found" });
+    }
+
+    // Update transfer request status
+    profile.transferRequest.status = "rejected";
+    profile.transferRequest.rejectedOn = new Date();
+    if (reason) {
+      profile.transferRequest.rejectionReason = reason;
+    }
+
+    await profile.save();
+
+    // Notify the player
+    try {
+      const message = reason 
+        ? `Your transfer request to ${profile.transferRequest.to.name} has been rejected. Reason: ${reason}`
+        : `Your transfer request to ${profile.transferRequest.to.name} has been rejected. Please contact admin for more information.`;
+      
+      await createNotification(
+        profile.personId._id,
+        "transfer_rejected",
+        "Transfer Request Rejected",
+        message,
+        { relatedEntityId: profile.transferRequest.to.id, relatedEntityType: "institution" }
+      );
+    } catch (notificationError) {
+      console.error("Error creating notification for transfer rejection:", notificationError);
+    }
+
+    res.status(200).json({
+      message: "Transfer request rejected successfully",
+      transferRequest: profile.transferRequest
+    });
+  } catch (error) {
+    console.error("Reject transfer error:", error);
+    res.status(500).json({ message: "Failed to reject transfer request", error: error.message });
+  }
+};
+
+/* 📋 GET PENDING TRANSFER REQUESTS */
+export const getPendingTransfers = async (req, res) => {
+  try {
+    const pendingTransfers = await PlayerProfile.find({
+      "transferRequest.status": "pending"
+    }).populate("personId", "firstName lastName email uniqueUserId");
+
+    const formattedTransfers = pendingTransfers.map(profile => ({
+      playerId: profile.personId._id,
+      playerName: `${profile.personId.firstName} ${profile.personId.lastName}`,
+      playerEmail: profile.personId.email,
+      playerUserId: profile.personId.uniqueUserId,
+      transferRequest: profile.transferRequest
+    }));
+
+    res.status(200).json(formattedTransfers);
+  } catch (error) {
+    console.error("Get pending transfers error:", error);
+    res.status(500).json({ message: "Failed to fetch pending transfer requests", error: error.message });
   }
 };

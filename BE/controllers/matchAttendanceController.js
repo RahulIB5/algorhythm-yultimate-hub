@@ -4,6 +4,7 @@ import Team from "../models/teamModel.js";
 import TeamRoster from "../models/teamRosterModel.js";
 import VolunteerTournamentAssignment from "../models/volunteerTournamentAssignmentModel.js";
 import Person from "../models/personModel.js";
+import { createNotification, createNotificationsForUsers } from "./notificationController.js";
 
 // Get all players for a match (from both teams)
 export const getMatchPlayers = async (req, res) => {
@@ -265,6 +266,23 @@ export const markMatchAttendance = async (req, res) => {
       } catch (error) {
         errors.push({ playerId: record.playerId, error: error.message });
       }
+    }
+
+    // Notify players whose attendance was recorded
+    try {
+      const notifiedPlayerIds = results.map(r => r.playerId).filter(Boolean);
+      if (notifiedPlayerIds.length > 0) {
+        const matchTime = match.startTime ? new Date(match.startTime).toLocaleString() : '';
+        await createNotificationsForUsers(
+          notifiedPlayerIds,
+          'match_attendance_recorded',
+          'Match Attendance Recorded',
+          `Your attendance has been recorded for a match${matchTime ? ` starting ${matchTime}` : ''}.`,
+          { relatedEntityId: matchId, relatedEntityType: 'match' }
+        );
+      }
+    } catch (notificationError) {
+      console.error('Error creating notifications for match attendance:', notificationError);
     }
 
     res.status(200).json({

@@ -9,8 +9,8 @@ import { toast } from "sonner";
 
 interface AccountsTabProps {
   accountRequests: any[];
-  handleApprove: (id: string | number, coachId?: string) => void;
-  handleReject: (id: string | number) => void;
+  handleApprove: (id: string | number, coachId?: string, role?: string) => void;
+  handleReject: (id: string | number, role?: string) => void;
 }
 
 interface Coach {
@@ -80,7 +80,8 @@ const AccountsTab = ({ accountRequests, handleApprove, handleReject }: AccountsT
       setShowCoachDialog(true);
       fetchCoaches();
     } else {
-      handleApprove(request._id);
+      // For coach and volunteer, directly approve without coach selection
+      handleApprove(request._id, undefined, request.requestedRole);
     }
   };
 
@@ -90,7 +91,7 @@ const AccountsTab = ({ accountRequests, handleApprove, handleReject }: AccountsT
         toast.error("Please select a coach");
         return;
       }
-      handleApprove(selectedRequest._id, selectedCoachId || undefined);
+      handleApprove(selectedRequest._id, selectedCoachId || undefined, selectedRequest.requestedRole);
       setShowCoachDialog(false);
       setSelectedRequest(null);
       setSelectedCoachId("");
@@ -188,7 +189,7 @@ const AccountsTab = ({ accountRequests, handleApprove, handleReject }: AccountsT
                     Approve
                   </button>
                   <button
-                    onClick={() => handleReject(request._id)}
+                    onClick={() => handleReject(request._id, request.requestedRole)}
                     className="flex items-center gap-2 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
                   >
                     <X className="h-4 w-4" />
