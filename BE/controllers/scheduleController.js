@@ -2,7 +2,7 @@ import Team from "../models/teamModel.js";
 import Tournament from "../models/tournamentModel.js";
 import Match from "../models/matchModel.js";
 import TeamRoster from "../models/teamRosterModel.js";
-import { createNotificationsForUsers } from "./notificationController.js";
+import { createNotification, createNotificationsForUsers, notifyTournamentStakeholders } from "./notificationController.js";
 
 // Get teams registered for a tournament
 export const getTeamsByTournament = async (req, res) => {
@@ -346,6 +346,14 @@ export const generateSchedule = async (req, res) => {
           { relatedEntityId: tournament._id, relatedEntityType: "tournament" }
         );
       }
+
+      // Notify coaches and admins as stakeholders
+      await notifyTournamentStakeholders(
+        tournament._id,
+        'match_scheduled',
+        'Schedule Generated',
+        `Matches have been scheduled for ${tournament.name}.`
+      );
     } catch (notificationError) {
       console.error("Error creating notifications for match scheduling:", notificationError);
       // Don't fail the request if notification fails
@@ -607,6 +615,50 @@ export const updateMatch = async (req, res) => {
     const updatedMatch = await Match.findById(matchId)
       .populate('teamAId', 'teamName')
       .populate('teamBId', 'teamName');
+
+  try {
+    const populatedForNotify = await Match.findById(matchId)
+      .populate('teamAId', 'teamName coachId')
+      .populate('teamBId', 'teamName coachId')
+      .populate('tournamentId', 'name');
+
+    const coachIds = [
+      populatedForNotify?.teamAId?.coachId,
+      populatedForNotify?.teamBId?.coachId
+    ].filter(Boolean);
+
+    if (coachIds.length > 0 && (startTime || endTime || fieldName)) {
+      await createNotificationsForUsers(
+        coachIds,
+        'match_rescheduled',
+        'Match Updated',
+        `Match details updated for ${populatedForNotify?.tournamentId?.name || 'a tournament'}.`,
+        { relatedEntityId: populatedForNotify._id, relatedEntityType: 'match' }
+      );
+    }
+
+    if (coachIds.length > 0 && status) {
+      await createNotificationsForUsers(
+        coachIds,
+        'match_status_changed',
+        'Match Status Changed',
+        `Match status is now "${populatedForNotify.status}".`,
+        { relatedEntityId: populatedForNotify._id, relatedEntityType: 'match' }
+      );
+    }
+
+    if (isCompleting && populatedForNotify?.winnerTeamId) {
+      await createNotificationsForUsers(
+        coachIds,
+        'match_completed',
+        'Match Completed',
+        'Match has been completed.',
+        { relatedEntityId: populatedForNotify._id, relatedEntityType: 'match' }
+      );
+    }
+  } catch (notificationError) {
+    console.error('Error creating notifications for match update:', notificationError);
+  }
 
     res.status(200).json({
       success: true,

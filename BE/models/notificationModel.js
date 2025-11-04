@@ -17,7 +17,11 @@ const notificationSchema = new mongoose.Schema(
         "tournament_registration", "match_scheduled", "match_result",
         "spirit_score_submitted", "spirit_score_received",
         "player_stats_submitted", "attendance_recorded",
-        "session_reminder", "tournament_reminder"
+        "match_attendance_recorded", "session_reminder", "tournament_reminder",
+        "session_assigned", "session_updated", "session_enrollment",
+        "volunteer_assignment_updated", "volunteer_unassigned",
+        "volunteer_assigned_to_tournament",
+        "transfer_requested", "transfer_approved", "transfer_rejected"
       ]
     },
     title: {

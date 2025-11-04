@@ -8,6 +8,7 @@ import Team from "../models/teamModel.js";
 import Tournament from "../models/tournamentModel.js";
 import School from "../models/schoolModel.js";
 import PlayerMatchFeedback from "../models/playerMatchFeedbackModel.js";
+import { createNotification, createNotificationsForUsers } from "./notificationController.js";
 
 // Get player profile with all details
 export const getPlayerProfile = async (req, res) => {
@@ -347,6 +348,32 @@ export const requestTransfer = async (req, res) => {
     };
 
     await profile.save();
+
+  try {
+    // Notify admins
+    const admins = await Person.find({ roles: { $in: ["admin"] } }).select("_id");
+    const adminIds = admins.map(a => a._id);
+    if (adminIds.length > 0) {
+      await createNotificationsForUsers(
+        adminIds,
+        "transfer_requested",
+        "Transfer Request Submitted",
+        `${profile.personId?.firstName || "Player"} requested transfer to ${targetInstitution.name}.`,
+        { relatedEntityId: profile.personId, relatedEntityType: "player" }
+      );
+    }
+
+    // Notify player confirmation
+    await createNotification(
+      profile.personId,
+      "transfer_requested",
+      "Transfer Request Received",
+      `Your transfer request to ${targetInstitution.name} has been submitted for review.`,
+      { relatedEntityId: targetInstitution._id, relatedEntityType: "institution" }
+    );
+  } catch (notificationError) {
+    console.error("Error creating notifications for transfer request:", notificationError);
+  }
 
     res.status(200).json({
       message: "Transfer request submitted successfully",

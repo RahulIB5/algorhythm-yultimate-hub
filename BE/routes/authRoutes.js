@@ -5,7 +5,10 @@ import {
   loginUser,
   getPendingRequests,
   rejectRequest,
-  getActiveCoaches
+  getActiveCoaches,
+  approveTransfer,
+  rejectTransfer,
+  getPendingTransfers
 } from "../controllers/authController.js";
 import { getAssignedStudents } from "../controllers/coachController.js";
 
@@ -29,5 +32,10 @@ router.get("/coaches/active", getActiveCoaches);
 
 // Get assigned students for a coach
 router.get("/coach/:coachId/students", getAssignedStudents);
+
+// Transfer request management
+router.get("/transfers/pending", getPendingTransfers);
+router.post("/transfers/approve", approveTransfer);
+router.post("/transfers/reject", rejectTransfer);
 
 export default router;

@@ -29,6 +29,7 @@ import notificationRoutes from "./routes/notificationRoutes.js";
 import translationMiddleware from "./middleware/translationMiddleware.js";
 import translateRoutes from "./routes/translateRoutes.js";
 import aiRoutes from "./routes/aiRoutes.js";
+import testRoutes from "./routes/testRoutes.js";
 
 // ✅ Fix for __dirname and __filename in ES Modules
 const __filename = fileURLToPath(import.meta.url);
@@ -71,6 +72,7 @@ app.use("/api/analytics", analyticsRoutes);
 app.use("/api/notifications", notificationRoutes);
 app.use("/api/translate", translateRoutes);
 app.use("/api/ai", aiRoutes);
+app.use("/api/test", testRoutes);
 
 // ✅ Serve uploaded files statically
 app.use("/uploads", express.static(path.join(__dirname, "uploads")));
