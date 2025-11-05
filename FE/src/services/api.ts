@@ -1,5 +1,6 @@
 import axios from 'axios';
 
+// Production API endpoint for Yultimate Hub - Updated for deployment
 export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "https://algorhythm-yultimate-hub.onrender.com/api";
 
 // Create axios instance with default config
