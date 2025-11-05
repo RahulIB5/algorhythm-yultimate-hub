@@ -8,7 +8,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
 import { Camera, Upload, X, Image as ImageIcon, RefreshCw, Trash2 } from "lucide-react";
-import { matchImageAPI, MatchImage, Match, handleAPIError } from "@/services/api";
+import { matchImageAPI, MatchImage, Match, handleAPIError, API_BASE_URL } from "@/services/api";
 
 const MatchImagesTab = () => {
   const [matches, setMatches] = useState<Match[]>([]);
@@ -353,7 +353,7 @@ const MatchImagesTab = () => {
                   <Card key={image._id} className="glass-card overflow-hidden">
                     <div className="relative">
                       <img
-                        src={`http://localhost:9000${image.imageUrl}`}
+                        src={`${API_BASE_URL.replace("/api", "")}${image.imageUrl}`}
                         alt={image.caption || "Match image"}
                         className="w-full h-48 object-cover"
                       />

@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Calendar, MapPin, Users, Trophy, Clock, ChevronRight, Loader2, AlertCircle } from "lucide-react";
 import Navbar from "@/components/Navbar";
 import BottomNav from "@/components/BottomNav";
-import { tournamentAPI, Tournament, handleAPIError } from "@/services/api";
+import { tournamentAPI, Tournament, handleAPIError, API_BASE_URL } from "@/services/api";
 import { toast } from "sonner";
 
 // Format date range for display
@@ -73,7 +73,7 @@ const TournamentCard = ({ tournament }: { tournament: Tournament }) => {
       {tournament.image && (
         <div className="mb-4 rounded-lg overflow-hidden">
           <img 
-            src={`http://localhost:9000${tournament.image}`} 
+            src={`${API_BASE_URL.replace("/api", "")}${tournament.image}`} 
             alt={tournament.name}
             className="w-full h-32 object-cover"
           />

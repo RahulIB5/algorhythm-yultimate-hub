@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Plus, X, Calendar } from "lucide-react";
 import { toast } from "sonner";
+import { API_BASE_URL } from "@/services/api";
 
 interface Coach {
   _id: string;
@@ -55,7 +56,7 @@ const SessionsTab = () => {
 
   const fetchSessions = async () => {
     try {
-      const response = await fetch("http://localhost:9000/api/sessions");
+      const response = await fetch("${API_BASE_URL}/sessions");
       const data = await response.json();
       if (response.ok) {
         setSessions(data);
@@ -71,7 +72,7 @@ const SessionsTab = () => {
 
   const fetchCoaches = async () => {
     try {
-      const response = await fetch("http://localhost:9000/api/sessions/coaches/list");
+      const response = await fetch("${API_BASE_URL}/sessions/coaches/list");
       const data = await response.json();
       if (response.ok) {
         setCoaches(data);
@@ -83,7 +84,7 @@ const SessionsTab = () => {
 
   const fetchCohorts = async () => {
     try {
-      const response = await fetch("http://localhost:9000/api/sessions/cohorts/list");
+      const response = await fetch("${API_BASE_URL}/sessions/cohorts/list");
       const data = await response.json();
       if (response.ok) {
         setCohorts(data);
@@ -130,7 +131,7 @@ const SessionsTab = () => {
         sessionPayload.venue = formData.venue.trim();
       }
 
-      const response = await fetch("http://localhost:9000/api/sessions", {
+      const response = await fetch("${API_BASE_URL}/sessions", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(sessionPayload),

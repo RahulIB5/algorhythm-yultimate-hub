@@ -14,6 +14,7 @@ import HomeVisitsSection from "./HomeVisitsSection";
 import AchievementsSection from "./AchievementsSection";
 import TransferSection from "./TransferSection";
 import MatchesSection from "./MatchesSection";
+import { API_BASE_URL } from "@/services/api";
 import StatsCards from "./StatsCards";
 import FeedbackSection from "./FeedbackSection";
 import PlayerFloatingChat from "./PlayerFloatingChat";
@@ -42,8 +43,8 @@ const PlayerDashboard = () => {
     try {
       setLoading(true);
       const [profileRes, statsRes, playerStatsRes] = await Promise.all([
-        fetch(`http://localhost:9000/api/player/${id}`),
-        fetch(`http://localhost:9000/api/player/${id}/stats`),
+        fetch(`${API_BASE_URL}/player/${id}`),
+        fetch(`${API_BASE_URL}/player/${id}/stats`),
         playerStatsAPI.getPlayerStats(id)
       ]);
 

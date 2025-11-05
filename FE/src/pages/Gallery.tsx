@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Image as ImageIcon, RefreshCw, Calendar, MapPin, Users, Trophy } from "lucide-react";
-import { matchImageAPI, tournamentAPI, MatchImage, Tournament, handleAPIError } from "@/services/api";
+import { matchImageAPI, tournamentAPI, MatchImage, Tournament, handleAPIError, API_BASE_URL } from "@/services/api";
 import { toast } from "sonner";
 
 const Gallery = () => {
@@ -135,7 +135,7 @@ const Gallery = () => {
                 >
                   <div className="relative aspect-video overflow-hidden bg-primary/10">
                     <img
-                      src={`http://localhost:9000${image.imageUrl}`}
+                      src={`${API_BASE_URL.replace("/api", "")}${image.imageUrl}`}
                       alt={image.caption || "Match image"}
                       className="w-full h-full object-cover transition-transform hover:scale-110"
                       loading="lazy"
@@ -189,7 +189,7 @@ const Gallery = () => {
                 <div className="space-y-4">
                   <div className="relative w-full h-96 rounded-lg overflow-hidden">
                     <img
-                      src={`http://localhost:9000${selectedImage.imageUrl}`}
+                      src={`${API_BASE_URL.replace("/api", "")}${selectedImage.imageUrl}`}
                       alt={selectedImage.caption || "Match image"}
                       className="w-full h-full object-contain bg-muted"
                     />
