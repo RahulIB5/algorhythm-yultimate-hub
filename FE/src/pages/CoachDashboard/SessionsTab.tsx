@@ -84,7 +84,7 @@ const SessionsTab = () => {
 
   const fetchPlayers = async () => {
     try {
-      const response = await fetch("${API_BASE_URL}/sessions/players/list");
+      const response = await fetch(`${API_BASE_URL}/sessions/players/list`);
       const data = await response.json();
       if (response.ok) {
         setPlayers(data);

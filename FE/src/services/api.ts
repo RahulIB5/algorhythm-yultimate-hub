@@ -1,7 +1,7 @@
 import axios from 'axios';
 
-// Production API endpoint for Yultimate Hub - Updated for deployment
-export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "https://algorhythm-yultimate-hub.onrender.com/api";
+// API endpoint - uses environment variable or defaults to localhost for development
+export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:9000/api";
 
 // Create axios instance with default config
 const api = axios.create({

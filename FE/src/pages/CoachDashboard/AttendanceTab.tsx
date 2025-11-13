@@ -149,7 +149,7 @@ const AttendanceTab = () => {
         date: new Date(session.scheduledStart),
       }));
 
-      const response = await fetch("${API_BASE_URL}/attendance/mark", {
+      const response = await fetch(`${API_BASE_URL}/attendance/mark`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

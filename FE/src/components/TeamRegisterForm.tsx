@@ -154,7 +154,7 @@ const TeamRegisterForm = ({ open, onOpenChange, tournament }) => {
         coachId,
       };
 
-      const res = await fetch("${API_BASE_URL}/teams", {
+      const res = await fetch(`${API_BASE_URL}/teams`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
