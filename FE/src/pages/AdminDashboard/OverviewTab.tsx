@@ -245,21 +245,22 @@ const OverviewTab = ({ setActiveTab, tournaments = [] }: OverviewTabProps) => {
       </div>
 
       {/* Upcoming Sessions Section */}
-      <Card className="glass-card glass-hover animate-slide-up">
-        <CardHeader>
-          <CardTitle className="flex items-center justify-between">
-            <span className="flex items-center gap-2">
-              <Calendar className="h-5 w-5" />
-              Upcoming Sessions
-            </span>
-            <button 
-              onClick={() => setActiveTab("sessions")}
-              className="text-sm text-blue-600 hover:text-blue-700 font-medium"
-            >
-              View All
-            </button>
-          </CardTitle>
-        </CardHeader>
+      <div className="mt-8">
+        <Card className="glass-card glass-hover animate-slide-up">
+          <CardHeader>
+            <CardTitle className="flex items-center justify-between">
+              <span className="flex items-center gap-2">
+                <Calendar className="h-5 w-5" />
+                Upcoming Sessions
+              </span>
+              <button 
+                onClick={() => setActiveTab("sessions")}
+                className="text-sm text-blue-600 hover:text-blue-700 font-medium"
+              >
+                View All
+              </button>
+            </CardTitle>
+          </CardHeader>
         <CardContent>
           {loading ? (
             <p className="text-sm text-muted-foreground">Loading sessions...</p>
@@ -318,6 +319,7 @@ const OverviewTab = ({ setActiveTab, tournaments = [] }: OverviewTabProps) => {
           )}
         </CardContent>
       </Card>
+      </div>
     </>
   );
 };

@@ -184,7 +184,7 @@ const Home = () => {
               </span>
             </h1>
             <p className="text-xl md:text-2xl text-muted-foreground max-w-2xl mx-auto">
-              AlgoRhythm brings together Ultimate Frisbee tournaments and youth development programs with AI-driven insights
+              YUltimate brings together Ultimate Frisbee tournaments and youth development programs with AI-driven insights
             </p>
             <div className="flex flex-wrap gap-4 justify-center pt-4">
               <Link to="/select-role">
@@ -367,7 +367,7 @@ const Home = () => {
         <div className="container mx-auto text-center text-primary-foreground space-y-6">
           <h2 className="text-4xl md:text-5xl font-bold">Ready to Join?</h2>
           <p className="text-xl opacity-90 max-w-2xl mx-auto">
-            Whether you're organizing tournaments or running youth programs, AlgoRhythm has the tools you need
+            Whether you're organizing tournaments or running youth programs, YUltimate has the tools you need
           </p>
           <div className="flex gap-4 justify-center pt-4">
             <Link to="/register">
@@ -391,7 +391,7 @@ const Home = () => {
             <div className="bg-gradient-to-br from-primary to-secondary p-2 rounded-lg">
               <Users className="h-5 w-5 text-primary-foreground" />
             </div>
-            <span className="text-lg font-bold">AlgoRhythm</span>
+            <span className="text-lg font-bold">YUltimate</span>
           </div>
           <p className="text-muted-foreground">
             © 2025 Y-Ultimate. Empowering communities through sport.

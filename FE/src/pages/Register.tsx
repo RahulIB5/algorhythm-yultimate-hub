@@ -141,7 +141,7 @@ const Register = () => {
               <Zap className="h-8 w-8 text-primary-foreground" />
             </div>
           </div>
-          <CardTitle className="text-3xl font-bold">Join AlgoRhythm</CardTitle>
+          <CardTitle className="text-3xl font-bold">Join YUltimate</CardTitle>
           <CardDescription className="text-base">
             Create your account to get started
           </CardDescription>
